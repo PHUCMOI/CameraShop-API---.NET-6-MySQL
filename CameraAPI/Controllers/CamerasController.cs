@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CameraAPI.Models;
+using Microsoft.AspNetCore.JsonPatch;
 
 namespace CameraAPI.Controllers
 {
@@ -80,6 +81,21 @@ namespace CameraAPI.Controllers
             return NoContent();
         }
 
+        [HttpPatch("{id}")]
+        public IActionResult UpdateCamera(int id, [FromBody] JsonPatchDocument<Camera> patchDoc)
+        {
+            var camera = _context.Cameras.Find(id);
+            if (camera == null)
+            {
+                return NotFound();
+            }
+
+            patchDoc.ApplyTo(camera);
+            _context.Update(camera);
+
+            return NoContent();
+        }
+
         // POST: api/Cameras
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
@@ -110,8 +126,9 @@ namespace CameraAPI.Controllers
             {
                 return NotFound();
             }
+            camera.IsDelete = true;
 
-            _context.Cameras.Remove(camera);
+            //_context.Cameras.Remove(camera);
             await _context.SaveChangesAsync();
 
             return NoContent();

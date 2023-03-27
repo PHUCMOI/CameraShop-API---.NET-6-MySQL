@@ -26,6 +26,8 @@ namespace CameraAPI.Models
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            
+
             modelBuilder.Entity<Camera>(entity =>
             {
                 entity.ToTable("Camera");
@@ -52,6 +54,7 @@ namespace CameraAPI.Models
                 entity.Property(e => e.Price).HasColumnType("decimal(18, 0)");
 
                 entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+                entity.Property(e => e.IsDelete).HasColumnName("IsDelete");
             });
 
             modelBuilder.Entity<Category>(entity =>
