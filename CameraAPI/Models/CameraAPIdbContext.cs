@@ -24,6 +24,12 @@ namespace CameraAPI.Models
         public virtual DbSet<OrderDetail> OrderDetails { get; set; }
         public virtual DbSet<User> Users { get; set; }
 
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseSqlServer("Data Source=INTERN-TMPHUC1\\SQLEXPRESS;Initial Catalog=InternShop;uid=minhphuc;password=minhphuc0159@;TrustServerCertificate=True",
+                sqlServerOptions => sqlServerOptions.EnableRetryOnFailure());
+        }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             

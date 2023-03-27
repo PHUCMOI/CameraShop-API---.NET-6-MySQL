@@ -7,10 +7,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CameraAPI.Models;
 using Microsoft.AspNetCore.JsonPatch;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CameraAPI.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
+    //[Authorize]
     [ApiController]
     public class CamerasController : ControllerBase
     {

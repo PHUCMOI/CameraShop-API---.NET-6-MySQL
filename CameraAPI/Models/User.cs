@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace CameraAPI.Models
 {
-    public partial class User
+    public class User
     {
         public int UserId { get; set; }
         public string Username { get; set; }
@@ -20,4 +20,5 @@ namespace CameraAPI.Models
         public DateTime? UpdatedDate { get; set; }
         public bool? IsDelete { get; set; }
     }
+    
 }
