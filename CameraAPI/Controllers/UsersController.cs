@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace CameraAPI.Controllers
 {
     [Route("api/[controller]")]
-    [ApiController]
+    [ApiController, Authorize]
     public class UsersController : ControllerBase
     {
         private readonly CameraAPIdbContext _context;

@@ -8,31 +8,35 @@ using Microsoft.EntityFrameworkCore;
 using CameraAPI.Models;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 
 namespace CameraAPI.Controllers
 {
-    [Authorize]
     [Route("api/[controller]")]
-    //[Authorize]
     [ApiController]
+    [Authorize]
     public class CamerasController : ControllerBase
     {
         private readonly CameraAPIdbContext _context;
 
+
         public CamerasController(CameraAPIdbContext context)
         {
             _context = context;
-        }
+        } 
 
         // GET: api/Cameras
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Camera>>> GetCameras()
         {
-          if (_context.Cameras == null)
-          {
-              return NotFound();
-          }
-            return await _context.Cameras.ToListAsync();
+            if (_context.Cameras == null)
+            {
+                return NotFound();
+            }
+            var camera =  await _context.Cameras.ToListAsync();
+            return camera;
         }
 
         // GET: api/Cameras/5
@@ -141,5 +145,7 @@ namespace CameraAPI.Controllers
         {
             return (_context.Cameras?.Any(e => e.CameraId == id)).GetValueOrDefault();
         }
+
+       
     }
 }

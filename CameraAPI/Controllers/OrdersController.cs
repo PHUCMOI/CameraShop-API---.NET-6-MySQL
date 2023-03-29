@@ -6,11 +6,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CameraAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CameraAPI.Controllers
 {
     [Route("api/[controller]")]
-    [ApiController]
+    [ApiController, Authorize]
     public class OrdersController : ControllerBase
     {
         private readonly CameraAPIdbContext _context;

@@ -1,4 +1,4 @@
-using CameraAPI.Models;
+﻿using CameraAPI.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -17,26 +17,73 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-builder.Services.AddDbContext<CameraAPIdbContext>(options =>
+// Display Authorize button
+builder.Services.AddSwaggerGen(options =>
 {
-    options.UseSqlServer(builder.Configuration.GetConnectionString("InternShop"));
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "Enter your token",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
+// Connect Database from SQL
+builder.Services.AddDbContext<CameraAPIdbContext>(options =>
+{
+    options.UseSqlServer(builder.Configuration.GetConnectionString("InternShop"));  
+});
+
+// Create JWT
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
     options.RequireHttpsMetadata = false;
     options.SaveToken = true;
-    options.TokenValidationParameters = new TokenValidationParameters()
+    /*options.Authority = "https://localhost:7031";
+    options.RequireHttpsMetadata = true;
+    options.Audience = "api1";*/
+    options.TokenValidationParameters = new TokenValidationParameters() 
     {
         ValidateIssuer = true,
         ValidateAudience = true,
-        ValidAudience = builder.Configuration["Jwt:Audience"],
+        ValidAudience = builder.Configuration["Jwt:Issuer"],
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
     };
 });
+
+//builder.Services.AddDistributedMemoryCache();
+
+// Session
+/*builder.Services.AddSession(options =>
+{
+    options.Cookie.Name = ".CameraAPI.Session";
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});*/
+
+builder.Services.AddCors(options =>
+    options.AddPolicy("CorsPolicy", builder => builder.AllowAnyOrigin()
+                                                    .AllowAnyMethod()
+                                                    .AllowAnyHeader()
+                                                    .AllowCredentials()
+                                                    .Build()));
 
 var app = builder.Build();
 
@@ -52,6 +99,8 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+//app.UseSession();
 
 app.MapControllers();
 
