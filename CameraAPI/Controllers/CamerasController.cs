@@ -8,95 +8,68 @@ using Microsoft.EntityFrameworkCore;
 using CameraAPI.Models;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using CameraAPI.Services.Interfaces;
 
 namespace CameraAPI.Controllers
 {
-    [Authorize]
     [Route("api/[controller]")]
-    //[Authorize]
     [ApiController]
+    [Authorize]
     public class CamerasController : ControllerBase
     {
-        private readonly CameraAPIdbContext _context;
+        public readonly ICameraService _camService;
+        public CamerasController(ICameraService cameraService)
+        {
+            _camService = cameraService;
+        }
 
+        /*private readonly CameraAPIdbContext _context;
         public CamerasController(CameraAPIdbContext context)
         {
             _context = context;
-        }
+        }*/
 
         // GET: api/Cameras
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Camera>>> GetCameras()
         {
-          if (_context.Cameras == null)
-          {
-              return NotFound();
-          }
-            return await _context.Cameras.ToListAsync();
+            var CameraList = await _camService.GetAllCamera();
+            if (CameraList == null)
+            {
+                return NotFound();
+            }
+            return Ok(CameraList);
         }
 
         // GET: api/Cameras/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Camera>> GetCamera(int id)
         {
-          if (_context.Cameras == null)
-          {
-              return NotFound();
-          }
-            var camera = await _context.Cameras.FindAsync(id);
-
-            if (camera == null)
+            var CameraDetail = await _camService.GetIdAsync(id);
+            if (CameraDetail != null)
             {
-                return NotFound();
+                return Ok(CameraDetail);
             }
-
-            return camera;
+            return BadRequest();    
         }
 
         // PUT: api/Cameras/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutCamera(int id, Camera camera)
+        public async Task<IActionResult> PutCamera(Camera camera)
         {
-            if (id != camera.CameraId)
+            if(camera != null)
             {
-                return BadRequest();
-            }
-
-            _context.Entry(camera).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!CameraExists(id))
+                var CameraDetails = await _camService.Update(camera);
+                if (CameraDetails)
                 {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
+                    return Ok(CameraDetails);
                 }
             }
-
-            return NoContent();
-        }
-
-        [HttpPatch("{id}")]
-        public IActionResult UpdateCamera(int id, [FromBody] JsonPatchDocument<Camera> patchDoc)
-        {
-            var camera = _context.Cameras.Find(id);
-            if (camera == null)
-            {
-                return NotFound();
-            }
-
-            patchDoc.ApplyTo(camera);
-            _context.Update(camera);
-
-            return NoContent();
+            return BadRequest();
         }
 
         // POST: api/Cameras
@@ -104,14 +77,12 @@ namespace CameraAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<Camera>> PostCamera(Camera camera)
         {
-          if (_context.Cameras == null)
-          {
-              return Problem("Entity set 'CameraAPIdbContext.Cameras'  is null.");
-          }
-            _context.Cameras.Add(camera);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetCamera", new { id = camera.CameraId }, camera);
+            var CameraDetail = await _camService.Create(camera);
+            if (CameraDetail)
+            {
+                return Ok(CameraDetail);
+            }
+            return BadRequest();
         }
 
         
@@ -120,26 +91,13 @@ namespace CameraAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCamera(int id)
         {
-            if (_context.Cameras == null)
+            var CameraDelete = await _camService.DeleteAsync(id);
+            if (CameraDelete)
             {
-                return NotFound();
-            }
-            var camera = await _context.Cameras.FindAsync(id);
-            if (camera == null)
-            {
-                return NotFound();
-            }
-            camera.IsDelete = true;
-
-            //_context.Cameras.Remove(camera);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+                return Ok(CameraDelete);
+            }   
+            return BadRequest();    
         }
-
-        private bool CameraExists(int id)
-        {
-            return (_context.Cameras?.Any(e => e.CameraId == id)).GetValueOrDefault();
-        }
+        
     }
 }
