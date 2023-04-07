@@ -1,18 +1,12 @@
 ﻿using CameraAPI.Models;
 using CameraAPI.Repositories;
-using CameraAPI.Services.Interfaces;
 using CameraAPI.Services;
+using CameraAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using System.Configuration;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using System.Text;
-using CameraAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -72,10 +66,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 });
 
 // Repository Pattern
-//builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddDIServices(builder.Configuration);
-//builder.Services.AddScoped<ICameraRepository, CameraRepository>();
-builder.Services.AddScoped<ICameraService, CameraService>();
 
 
 //builder.Services.AddDistributedMemoryCache();

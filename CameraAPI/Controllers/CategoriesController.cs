@@ -7,47 +7,44 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CameraAPI.Models;
 using Microsoft.AspNetCore.Authorization;
+using CameraAPI.Services.Interfaces;
+using CameraAPI.Repositories;
+using CameraService.Services.IRepositoryServices;
 
 namespace CameraAPI.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/category")]
     [ApiController, Authorize]
     public class CategoriesController : ControllerBase
     {
-        private readonly CameraAPIdbContext _context;
-
-        public CategoriesController(CameraAPIdbContext context)
+        public readonly ICategoryService _categoryService;
+        public CategoriesController(ICategoryService categoryService)
         {
-            _context = context;
+            _categoryService = categoryService;
         }
 
         // GET: api/Categories
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Category>>> GetCategories()
+        public async Task<ActionResult<IEnumerable<Category>>> GetCategory()
         {
-          if (_context.Categories == null)
-          {
-              return NotFound();
-          }
-            return await _context.Categories.ToListAsync();
+            var categories = await _categoryService.GetAllCategory();
+            if (categories == null)
+            {
+                return NotFound();
+            }
+            return Ok(categories);
         }
 
         // GET: api/Categories/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Category>> GetCategory(int id)
         {
-          if (_context.Categories == null)
-          {
-              return NotFound();
-          }
-            var category = await _context.Categories.FindAsync(id);
-
-            if (category == null)
+            var categories = await _categoryService.GetIdAsync(id);
+            if (categories != null)
             {
-                return NotFound();
+                return Ok(categories);
             }
-
-            return category;
+            return BadRequest();
         }
 
         // PUT: api/Categories/5
@@ -55,30 +52,15 @@ namespace CameraAPI.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutCategory(int id, Category category)
         {
-            if (id != category.CategoryId)
+            if (category != null)
             {
-                return BadRequest();
-            }
-
-            _context.Entry(category).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!CategoryExists(id))
+                var categories = await _categoryService.Update(category);
+                if (categories)
                 {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
+                    return Ok(categories);
                 }
             }
-
-            return NoContent();
+            return BadRequest();
         }
 
         // POST: api/Categories
@@ -86,39 +68,24 @@ namespace CameraAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<Category>> PostCategory(Category category)
         {
-          if (_context.Categories == null)
-          {
-              return Problem("Entity set 'CameraAPIdbContext.Categories'  is null.");
-          }
-            _context.Categories.Add(category);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetCategory", new { id = category.CategoryId }, category);
+            var categories = await _categoryService.Create(category);
+            if (categories)
+            {
+                return Ok(categories);
+            }
+            return BadRequest();
         }
 
         // DELETE: api/Categories/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
-            if (_context.Categories == null)
+            var categories = await _categoryService.DeleteAsync(id);
+            if (categories)
             {
-                return NotFound();
+                return Ok(categories);
             }
-            var category = await _context.Categories.FindAsync(id);
-            if (category == null)
-            {
-                return NotFound();
-            }
-
-            _context.Categories.Remove(category);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool CategoryExists(int id)
-        {
-            return (_context.Categories?.Any(e => e.CategoryId == id)).GetValueOrDefault();
+            return BadRequest();
         }
     }
 }

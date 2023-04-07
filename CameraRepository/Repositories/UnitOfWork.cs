@@ -1,5 +1,5 @@
 ﻿using CameraAPI.Models;
-using Microsoft.EntityFrameworkCore;
+using CameraCore.IRepository;
 
 namespace CameraAPI.Repositories
 {
@@ -10,10 +10,13 @@ namespace CameraAPI.Repositories
         public ICategoryRepository Categories { get; }
         public IOrderRepository Orders {  get; }
         public IUserRepository Users { get; }
-        public UnitOfWork(CameraAPIdbContext context, ICameraRepository cameraRepository)
+        public IOrderDetailsRepository OrderDetails { get; }
+        public UnitOfWork(CameraAPIdbContext context, ICameraRepository cameraRepository,
+                           ICategoryRepository categoryRepository, IOrderDetailsRepository orderDetailsRepository)
         {
             _context = context;
             Cameras = cameraRepository;
+            OrderDetails = orderDetailsRepository;
         }
 
         public int Save()
