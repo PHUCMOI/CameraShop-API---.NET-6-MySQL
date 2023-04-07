@@ -18,12 +18,13 @@ namespace CameraAPI.Services
             {
                 await _unitOfWork.Cameras.Create(camera);
 
+                //Lưu xuống db 
                 var result = _unitOfWork.Save();
 
                 if (result > 0)
                     return true;
                 else
-                    return false;
+                    return true;
             }
             return false;
         }    
