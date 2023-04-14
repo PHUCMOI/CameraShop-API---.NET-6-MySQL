@@ -60,6 +60,7 @@ namespace CameraAPI.Models
 
                 entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
                 entity.Property(e => e.IsDelete).HasColumnName("IsDelete");
+                entity.Property(e => e.Sold).HasColumnName("Sold");
             });
 
             modelBuilder.Entity<Category>(entity =>

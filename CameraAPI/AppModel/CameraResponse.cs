@@ -1,6 +1,6 @@
 ﻿namespace CameraAPI.AppModel
 {
-    public class CameraRespone
+    public class CameraResponse
     {
         public string CameraName { get; set; }
         public string Brand { get; set; }

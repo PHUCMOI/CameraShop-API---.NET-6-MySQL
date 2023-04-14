@@ -22,5 +22,6 @@ namespace CameraAPI.Models
         public int? UpdatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
         public bool? IsDelete { get; set; }
+        public int Sold { get; set; }
     }
 }
