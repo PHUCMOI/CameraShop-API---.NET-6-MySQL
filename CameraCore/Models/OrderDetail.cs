@@ -2,6 +2,7 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
+using CameraAPI;
 
 namespace CameraAPI.Models
 {
@@ -16,5 +17,6 @@ namespace CameraAPI.Models
         public int? UpdatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
         public bool? IsDelete { get; set; }
+        public Camera Camera { get; set; }
     }
 }
