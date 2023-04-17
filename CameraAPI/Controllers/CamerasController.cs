@@ -2,22 +2,17 @@
 using Microsoft.AspNetCore.Authorization;
 using CameraAPI.Services.Interfaces;
 using CameraAPI.Models;
-using Microsoft.IdentityModel.Tokens;
 using CameraAPI.AppModel;
 using CameraService.Services.IRepositoryServices;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Linq;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.SqlClient;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
-using System.Net.WebSockets;
-using System.Drawing.Printing;
 using System.Data;
 using Dapper;
-using Microsoft.AspNetCore.Razor.Language.Extensions;
-using NuGet.Packaging.Signing;
+using CameraRepository;
+using CameraResponse = CameraAPI.AppModel.CameraResponse;
+using System.Globalization;
 using Nest;
+using System.Diagnostics;
 
 namespace CameraAPI.Controllers
 {
@@ -79,7 +74,7 @@ namespace CameraAPI.Controllers
             }
             return products;
         }
-
+        
         private string connectionString = "Server=INTERN-TMPHUC1\\SQLEXPRESS;Database=InternShop;uid=minhphuc;password=minhphuc0159@;Trusted_Connection=True;encrypt=false;";
         
         #region USE LINQ 
@@ -96,10 +91,12 @@ namespace CameraAPI.Controllers
                         join category in categories
                             on camera.CategoryId equals category.CategoryId into joinedCategories
                         from category in joinedCategories.DefaultIfEmpty() // Nếu không có category sẽ trả về N/A
+                        orderby camera.Sold descending
                         select new
                         {
                             Camera = camera,
-                            CategoryName = category != null ? category.Name : "N/A"
+                            CategoryName = category != null ? category.Name : "N/A",
+                            Rank = camera.Sold
                         };
 
             if (categoryID.HasValue)
@@ -135,113 +132,30 @@ namespace CameraAPI.Controllers
                 cameras = cameras.Where(p => p.Quantity == quantity.Value);
             }
 
-            var result = new List<CameraResponse>();
+            var products = cameras.Select(camera => {
+                                       var category = query.FirstOrDefault(x => x.Camera.CameraId == camera.CameraId);
+                                       if (category != null)
+                                       {
+                                           return new CameraResponse
+                                           {
+                                               CameraName = camera.Name,
+                                               Brand = camera.Brand,
+                                               Price = camera.Price,
+                                               Img = camera.Img,
+                                               Quantity = camera.Quantity,
+                                               CategoryName = category.CategoryName,
+                                               Description = camera.Description,
+                                               BestSeller = "Đã bán " + camera.Sold
+                                           };
+                                       }
+                                  return null;
+            })
+            .Where(camera => camera != null)
+             .ToList();
 
-            // Danh sách camera id để truyền vào hàm tính best seller
-            var cameraIds = cameras.Select(c => c.CameraId).ToList();
-            var bestSellers = await CalculateBestSellersByLINQ(cameraIds);
+            return Ok(MapCameraResponse(products));
 
-            // Phân trang với page size = 3
-            var cameraPages = new List<PaginationCameraResponse>();
-            var pageCount = (int)Math.Ceiling(cameras.Count() / (float)3);
-
-            for (int page = 1; page <= pageCount; page++)
-            {
-                var products = cameras
-                                .Skip((page - 1) * 3)
-                                .Take(3)
-                                .Select(camera => {
-                                    var category = query.FirstOrDefault(x => x.Camera.CameraId == camera.CameraId);
-                                    if (category != null)
-                                    {
-                                        return new CameraResponse
-                                        {
-                                            CameraName = camera.Name,
-                                            Brand = camera.Brand,
-                                            Price = camera.Price,
-                                            Img = camera.Img,
-                                            Quantity = camera.Quantity,
-                                            CategoryName = category.CategoryName,
-                                            BestSeller = bestSellers[camera.CameraId],
-                                            Description = camera.Description
-                                        };
-                                    }
-                                    return null;
-                                })
-                                .Where(camera => camera != null)
-                                .ToList();
-
-                var pageResponse = new PaginationCameraResponse
-                {
-                    Camera = products,
-                    PageIndex = page,
-                    PageSize = 3,
-                    TotalPage = pageCount,
-                };
-                cameraPages.Add(pageResponse);
-            }
-            return cameraPages;
         }
-
-        private async Task<Dictionary<int, string>> CalculateBestSellersByLINQ(List<int> cameraIds)
-        {
-            var cameras = await _camService.GetAllCamera();
-            var orderDetails = await _context.OrderDetails.ToListAsync();
-
-            // Trả về bảng gồm danh sách camera với số lượng được bán và được sắp xếp giảm dần theo số lượng hàng được bán
-            var cameraSales = (from od in orderDetails
-                               join c in cameras on od.CameraId equals c.CameraId
-                               where cameraIds.Contains(c.CameraId)
-                               group od by c into g
-                               select new
-                               {
-                                   Camera = g.Key,
-                                   QuantitySold = g.Sum(x => x.Quantity)
-                               })
-                              .OrderByDescending(cs => cs.QuantitySold)
-                              .ThenBy(cs => cs.Camera.CameraId)
-                              .ToList();
-
-            var bestSellers = new Dictionary<int, string>();
-
-            foreach (var cameraId in cameraIds)
-            {
-                var camera = cameras.FirstOrDefault(c => c.CameraId == cameraId);
-
-                // Kiểm tra nếu không tìm được camera theo id
-                if (camera == null)
-                {
-                    bestSellers[cameraId] = $"No camera found with ID {cameraId}.";
-                    continue;
-                }
-                                
-                var cameraSale = cameraSales.FirstOrDefault(cs => cs.Camera.CameraId == cameraId);
-
-                // Kiểm tra nếu camera được bán hay chưa
-                if (cameraSale == null)
-                {
-                    bestSellers[cameraId] = $"No orders found for camera with ID {cameraId}.";
-                    continue;
-                }
-
-                var result = new StringBuilder();
-
-                // Sắp xếp vị trí của camera theo số lượng hàng đã bán
-                var rank = cameraSales.IndexOf(cameraSale) + 1;
-                var quantitySold = cameraSale.QuantitySold;
-
-                result.AppendLine($"Top {rank} best-selling cameras with {quantitySold} orders");
-
-                var otherTopSellingCameras = cameraSales
-                    .Where(cs => cs.Camera.CameraId != cameraId && cs.Camera.CategoryId == camera.CategoryId)
-                    .Take(2);                
-
-                bestSellers[cameraId] = result.ToString();
-            }
-
-            return bestSellers;
-        }
-
         #endregion
 
         #region SQL
@@ -267,29 +181,29 @@ namespace CameraAPI.Controllers
                                 WHERE 1=1 ";
                 if (categoryID != null)
                 {
-                    query += " AND CategoryID '%' + @CategoryID + '%'";
+                    query += " AND c.CategoryID LIKE '%' + @CategoryID + '%'";
                 }
                 if (name != null)
                 {
-                    query += " AND Name LIKE '%' + @Name + '%'";
+                    query += " AND c.Name LIKE '%' + @Name + '%'";
                 }
                 if (brand != null)
                 {
-                    query += " AND Brand = @Brand";
+                    query += " AND c.Brand LIKE @Brand";
                 }
                 if (minPrice != null && maxPrice != null)
                 {
-                    query += " AND Price >= @MinPrice AND Price <= @MaxPrice";
+                    query += " AND c.Price >= @MinPrice AND c.Price <= @MaxPrice";
                 }
                 else
                 {
                     if (FilterType == "lte")
                     {
-                        query += " AND Price <= @price";
+                        query += " AND c.Price <= @price";
                     }
                     else if (FilterType == "gte")
                     {
-                        query += " AND Price >= @price";
+                        query += " AND c.Price >= @price";
                     }
                 }
 
@@ -297,7 +211,7 @@ namespace CameraAPI.Controllers
 
                 if (categoryID != null)
                 {
-                    command.Parameters.AddWithValue("@Category", categoryID);
+                    command.Parameters.AddWithValue("@CategoryID", categoryID.ToString());
                 }
                 if (name != null)
                 {
@@ -329,13 +243,7 @@ namespace CameraAPI.Controllers
 
                 SqlDataReader reader = await command.ExecuteReaderAsync();
 
-                // Tính toán phân trang
-                int pageSize = 3;
-                int pageIndex = 1;
                 List<CameraResponse> cameras = new List<CameraResponse>();
-
-                var cameraPages = new List<PaginationCameraResponse>();
-                int countPages = 0;
                 while (reader.Read())
                 {
                     // Đọc từng bản ghi từ reader và thêm vào danh sách cameras
@@ -351,43 +259,10 @@ namespace CameraAPI.Controllers
                         BestSeller = "Top " + reader["Rank"].ToString() + " seller with " + reader["TotalSold"].ToString() + " orders"
                     };
                     cameras.Add(camera);
-                    countPages++;
-
-                    // Nếu đã đọc đủ số lượng camera cho trang hiện tại thì trả về kết quả
-                    if (cameras.Count == pageSize)
-                    {
-                        var pageResponse = new PaginationCameraResponse
-                        {
-                            Camera = cameras,
-                            PageIndex = pageIndex,
-                            PageSize = pageSize,
-                            TotalPage = (int)Math.Ceiling(countPages / (float)pageSize)
-                        };
-                        cameraPages.Add(pageResponse);
-
-                        // Chuẩn bị cho trang tiếp theo
-                        cameras = new List<CameraResponse>();
-                        pageIndex++;
-                    }
-                }
-
-                int totalPage = (int)Math.Ceiling(countPages / (float)pageSize);
-
-                // Trường hợp còn lại, nếu cameras.Count > 0 tức là có một trang cuối cùng không đủ đủ 3 camera
-                if (cameras.Count > 0)
-                {
-                    var pageResponse = new PaginationCameraResponse
-                    {
-                        Camera = cameras,
-                        PageIndex = pageIndex,
-                        PageSize = pageSize,
-                        TotalPage = totalPage
-                    };
-                    cameraPages.Add(pageResponse);
                 }
 
                 // Trả về kết quả
-                return Ok(cameraPages);
+                return Ok(MapCameraResponse(cameras));
             }
         }
         #endregion
@@ -414,30 +289,35 @@ namespace CameraAPI.Controllers
 
                 if (categoryID != null)
                 {
-                    sql += " AND CategoryID '%' + @CategoryID + '%'";
+                    sql += " AND c.CategoryID LIKE '%' + @CategoryID + '%'";
                 }
                 if (name != null)
                 {
-                    sql += " AND Name LIKE '%' + @Name + '%'";
+                    sql += " AND c.Name LIKE '%' + @Name + '%'";
                 }
                 if (brand != null)
                 {
-                    sql += " AND Brand = @Brand";
+                    sql += " AND c.Brand LIKE @Brand";
                 }
                 if (minPrice != null && maxPrice != null)
                 {
-                    sql += " AND Price >= @MinPrice AND Price <= @MaxPrice";
+                    sql += " AND c.Price >= @MinPrice AND Price <= @MaxPrice";
                 }
                 else
                 {
                     if (FilterType == "lte")
                     {
-                        sql += " AND Price <= @price";
+                        sql += " AND c.Price <= @price";
                     }
                     else if (FilterType == "gte")
                     {
-                        sql += " AND Price >= @price";
+                        sql += " AND c.Price >= @price";
                     }
+                }
+
+                if(quantity != null)
+                {
+                    sql += " AND c.Quantity > quantity";
                 }
 
                 sql += " ORDER BY TotalSold DESC;";
@@ -446,12 +326,13 @@ namespace CameraAPI.Controllers
 
                 var parameters = new
                 {
-                    CategoryID = categoryID,
+                    CategoryID = categoryID.ToString(),
                     Name = name,
                     Brand = brand,
                     MinPrice = minPrice,
                     MaxPrice = maxPrice,
                     price = price,
+                    quantity = quantity
                 };
                 
                 // Dapper để truy xuất dữ liệu và ánh xạ vào CameraResponse
@@ -466,34 +347,59 @@ namespace CameraAPI.Controllers
                 // Trả kết quả bằng cách gọi hàm MapCameraResponse               
                 return Ok(MapCameraResponse(cameras));
             }
-        }
-
-        private List<PaginationCameraResponse> MapCameraResponse(IEnumerable<CameraResponse> cameras)
-        {
-            // thực hiện mapping để chuyển đổi từ danh sách CameraResponse sang dạng phân trang
-            var cameraList = cameras.ToList();
-            var count = cameraList.Count; // Tổng số lượng sản phẩm
-            var pageResponses = new List<PaginationCameraResponse>();
-            var pageSize = 3;
-            var totalPage = (int)Math.Ceiling((decimal)count / pageSize);
-
-            for (var i = 0; i < totalPage; i++)
-            {
-                var page = new PaginationCameraResponse
-                {
-                    Camera = cameraList.Skip(i * pageSize).Take(pageSize).ToList(),
-                    PageIndex = i + 1,
-                    PageSize = pageSize,
-                    TotalPage = totalPage
-                };
-                pageResponses.Add(page);
-            }
-
-            return pageResponses;
-        }
+        }        
         #endregion
 
+        #region stored procedure
+        [HttpGet("stored-procedure")]
+        public async Task<ActionResult<List<PaginationCameraResponse>>> GetFromStoredProcedure(int? categoryID = null, string? name = null,
+        string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, int? quantity = null, int? pageSize = null, int? pageNumber = null)
+        {
+            using (var command = _context.Database.GetDbConnection().CreateCommand())
+            {
+                if (pageSize.HasValue && pageNumber.HasValue)
+                {
+                    command.CommandText = "get_camera1";
+                    command.Parameters.Add(new SqlParameter("@pagesize", pageSize ?? (object)DBNull.Value));
+                    command.Parameters.Add(new SqlParameter("@pagenumber", pageNumber ?? (object)DBNull.Value));
+                }
+                else
+                    command.CommandText = "get_camera";
+                command.CommandType = CommandType.StoredProcedure;
 
+                // Tạo các parameters
+                command.Parameters.Add(new SqlParameter("@categoryID", categoryID ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@name", name ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@brand", brand ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@minPrice", minPrice ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@maxPrice", maxPrice ?? (object)DBNull.Value));
+                command.Parameters.Add(new SqlParameter("@quantity", quantity ?? (object)DBNull.Value));
+
+                await _context.Database.OpenConnectionAsync();
+                using (var result = await command.ExecuteReaderAsync())
+                {
+                    // Map từ Camera sang CameraResponse
+                    var cameraResponses = new List<CameraResponse>();
+                    while (await result.ReadAsync())
+                    {
+                        cameraResponses.Add(new CameraResponse
+                        {
+                            CameraName = result.GetString(result.GetOrdinal("CameraName")),
+                            Brand = result.GetString(result.GetOrdinal("Brand")),
+                            Price = result.GetDecimal(result.GetOrdinal("Price")),
+                            Img = result.GetString(result.GetOrdinal("Img")),
+                            Quantity = result.GetInt32(result.GetOrdinal("Quantity")),
+                            Description = result.GetString(result.GetOrdinal("Description")),
+                            CategoryName = result.GetString(result.GetOrdinal("CategoryName")),
+                            BestSeller = result.GetInt32(result.GetOrdinal("Sold")).ToString()
+                        });
+                    }
+
+                    return Ok(MapCameraResponse(cameraResponses));
+                }
+            }
+        }
+        #endregion
 
         // PUT: api/Cameras/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
@@ -535,6 +441,48 @@ namespace CameraAPI.Controllers
             }   
             return BadRequest();    
         }
-        
+
+        // thực hiện mapping để chuyển đổi từ danh sách CameraResponse sang dạng phân trang
+        /*private List<PaginationCameraResponse> MapCameraResponse(IEnumerable<CameraResponse> cameras)
+        {
+            var cameraList = cameras.ToList();
+            var count = cameraList.Count; // Tổng số lượng sản phẩm
+            var pageResponses = new List<PaginationCameraResponse>();
+            var pageSize = 3;
+            var totalPage = (int)Math.Ceiling((decimal)count / pageSize);
+
+            for (var i = 0; i < totalPage; i++)
+            {
+                var page = new PaginationCameraResponse
+                {
+                    Camera = cameraList.Skip(i * pageSize).Take(pageSize).ToList(),
+                    PageIndex = i + 1,
+                    PageSize = pageSize,
+                    TotalPage = totalPage
+                };
+                pageResponses.Add(page);
+            }
+
+            return pageResponses;
+        }*/
+        private IEnumerable<PaginationCameraResponse> MapCameraResponse(IEnumerable<CameraResponse> cameras)
+        {
+            var cameraList = cameras.ToList();
+            var count = cameraList.Count;
+            var pageSize = 3;
+            var totalPage = (int)Math.Ceiling((decimal)count / pageSize);
+
+            for (var i = 0; i < totalPage; i++)
+            {
+                yield return new PaginationCameraResponse
+                {
+                    Camera = cameraList.Skip(i * pageSize).Take(pageSize).ToList(),
+                    PageIndex = i + 1,
+                    PageSize = pageSize,
+                    TotalPage = totalPage
+                };
+            }
+        }
+
     }
 }
