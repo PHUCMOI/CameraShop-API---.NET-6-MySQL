@@ -3,6 +3,7 @@
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using CameraAPI;
 
 namespace CameraAPI.Models
 {
@@ -22,7 +23,6 @@ namespace CameraAPI.Models
         public virtual DbSet<Order> Orders { get; set; }
         public virtual DbSet<OrderDetail> OrderDetails { get; set; }
         public virtual DbSet<User> Users { get; set; }
-
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             object value = optionsBuilder.UseSqlServer("Server=INTERN-TMPHUC1\\SQLEXPRESS;Database=InternShop;uid=minhphuc;password=minhphuc0159@;Trusted_Connection=True;encrypt=false;",

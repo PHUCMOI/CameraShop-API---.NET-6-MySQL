@@ -8,6 +8,6 @@ namespace CameraAPI.Services.Interfaces
         Task<Camera> GetIdAsync(int cameraId);
         Task<bool> Create(Camera camera);
         Task<bool> Update(Camera camera);
-        Task<bool> DeleteAsync(int CameraID);
+        Task<bool> DeleteAsync(int CameraID);        
     }
 }
