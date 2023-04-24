@@ -30,8 +30,7 @@ namespace CameraAPI.Controllers
             {
                 var resultLoginCheck = _context.Users
                     .Where(e => e.Username == _userData.Username 
-                            && e.Password == _userData.Password
-                            && e.Role == "admin")
+                            && e.Password == _userData.Password)
                     .FirstOrDefault();
                 if (resultLoginCheck == null)
                 {
@@ -41,7 +40,8 @@ namespace CameraAPI.Controllers
                 {
                     var claims = new[] {
                                 new Claim(JwtRegisteredClaimNames.Sub, _configuration["Jwt:Subject"]),
-                                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),                                
+                                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()), 
+                                new Claim(ClaimTypes.Role , resultLoginCheck.Role)
                             };
 
 

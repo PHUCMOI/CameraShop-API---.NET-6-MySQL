@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CameraAPI.Migrations
 {
-    [DbContext(typeof(CameraAPIdbContext))]
+    [DbContext(typeof(Models.CameraAPIdbContext))]
     [Migration("20230324100139_initial")]
     partial class initial
     {

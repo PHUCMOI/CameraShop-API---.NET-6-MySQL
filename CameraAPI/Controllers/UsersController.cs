@@ -14,9 +14,9 @@ namespace CameraAPI.Controllers
     [ApiController, Authorize]
     public class UsersController : ControllerBase
     {
-        private readonly CameraAPIdbContext _context;
+        private readonly Models.CameraAPIdbContext _context;
 
-        public UsersController(CameraAPIdbContext context)
+        public UsersController(Models.CameraAPIdbContext context)
         {
             _context = context;
         }
