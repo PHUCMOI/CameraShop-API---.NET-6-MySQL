@@ -6,7 +6,7 @@ namespace CameraAPI.Repositories
     {
         public CamerasRepository(CameraAPIdbContext dbContext) : base(dbContext)
         {
-
+            
         }
     }
 }

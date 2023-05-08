@@ -11,13 +11,26 @@ namespace CameraAPI.Repositories
     public abstract class GenericRepository<T> : IGenericRepository<T> where T : class
     {
         protected readonly CameraAPIdbContext _context;
-        protected GenericRepository(CameraAPIdbContext context)
+        protected readonly WarehouseDbContext _warehouseDbContext;
+
+        protected GenericRepository(WarehouseDbContext dbContext)
         {
-            _context = context;
+            _warehouseDbContext = dbContext;
         }
+
+        protected GenericRepository(CameraAPIdbContext dbContext)
+        {
+            _context = dbContext;
+        }
+
         public async Task<IEnumerable<T>> GetAll()
         {
             return await _context.Set<T>().ToListAsync();
+        }
+
+        public async Task<IEnumerable<T>> GetAllWarehouse()
+        {
+            return await _warehouseDbContext.Set<T>().ToListAsync();
         }
 
         public async Task<T> GetById(int id)

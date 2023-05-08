@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Configuration;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -45,6 +46,10 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddDbContext<CameraAPIdbContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("InternShop"));  
+});
+builder.Services.AddDbContext<WarehouseDbContext>(options =>
+{
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Warehouse"));
 });
 
 // Create JWT

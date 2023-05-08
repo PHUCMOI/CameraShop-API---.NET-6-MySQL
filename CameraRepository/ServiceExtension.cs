@@ -27,7 +27,13 @@ namespace CameraAPI.Services
             services.AddScoped<IOrderDetailService, OrderDetailService>();
             services.AddScoped<IOrderDetailsRepository, OrderDetailRepository>();
 
+            services.AddScoped<IWarehouseCameraService, WarehouseCameraService>();
+            services.AddScoped<IWarehouseCameraRepository, WarehouseCameraRepository>();
+
+            services.AddScoped<IWarehouseCategoryService, WarehouseCategoryService>();
+            services.AddScoped<IWarehouseCategoryRepository, WarehouseCategoryRepository>();
+
             return services;
         }
-    }
+    }    
 }

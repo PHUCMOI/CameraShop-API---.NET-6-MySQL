@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CameraAPI.Migrations
 {
-    [DbContext(typeof(CameraAPIdbContext))]
+    [DbContext(typeof(Models.CameraAPIdbContext))]
     partial class CameraAPIdbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)

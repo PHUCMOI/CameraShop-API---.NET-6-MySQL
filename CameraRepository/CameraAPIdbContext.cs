@@ -23,15 +23,25 @@ namespace CameraAPI.Models
         public virtual DbSet<Order> Orders { get; set; }
         public virtual DbSet<OrderDetail> OrderDetails { get; set; }
         public virtual DbSet<User> Users { get; set; }
+        public DbSet<Camera> ShopCameras { get; set; }
+        public DbSet<Category> ShopCategories { get; set; }
+
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            object value = optionsBuilder.UseSqlServer("Server=INTERN-TMPHUC1\\SQLEXPRESS;Database=InternShop;uid=minhphuc;password=minhphuc0159@;Trusted_Connection=True;encrypt=false;",
+            optionsBuilder.UseSqlServer("Server=INTERN-TMPHUC1\\SQLEXPRESS;Database=InternShop;uid=minhphuc;password=minhphuc0159@;Trusted_Connection=True;encrypt=false;",
                 sqlServerOptions => sqlServerOptions.EnableRetryOnFailure());
         }
 
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            
+            modelBuilder.HasDefaultSchema("shop");
+
+            /*modelBuilder.Entity<Camera>().ToTable("Camera", "shop");
+            modelBuilder.Entity<Category>().ToTable("Category", "shop");*/
+
+            base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<Camera>(entity =>
             {
@@ -149,4 +159,29 @@ namespace CameraAPI.Models
 
         partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
     }
+
+    // Lớp DbContext cho cơ sở dữ liệu Warehouse
+    public class WarehouseDbContext : DbContext
+    {
+        public WarehouseDbContext(DbContextOptions<WarehouseDbContext> options)
+            : base(options)
+        {
+        }
+        public DbSet<WarehouseCamera> Camera { get; set; }
+        public DbSet<WarehouseCategory> Category { get; set; }
+
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseSqlServer("Server=INTERN-TMPHUC1\\SQLEXPRESS;Database=Warehouse;uid=minhphuc;password=minhphuc0159@;Trusted_Connection=True;encrypt=false;",
+                sqlServerOptions => sqlServerOptions.EnableRetryOnFailure());
+        }
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.HasDefaultSchema("warehouse");
+
+            base.OnModelCreating(modelBuilder);
+        }
+    }
+
 }
