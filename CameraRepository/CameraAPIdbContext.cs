@@ -36,7 +36,7 @@ namespace CameraAPI.Models
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.HasDefaultSchema("shop");
+            //modelBuilder.HasDefaultSchema("shop");
 
             /*modelBuilder.Entity<Camera>().ToTable("Camera", "shop");
             modelBuilder.Entity<Category>().ToTable("Category", "shop");*/
