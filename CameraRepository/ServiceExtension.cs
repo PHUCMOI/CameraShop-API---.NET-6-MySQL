@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace CameraAPI.Services
 {
@@ -36,10 +37,15 @@ namespace CameraAPI.Services
             services.AddScoped<IWarehouseCategoryService, WarehouseCategoryService>();
             services.AddScoped<IWarehouseCategoryRepository, WarehouseCategoryRepository>();
 
+            services.AddSingleton<IRedisCacheService, RedisCacheService>();
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = "localhost:6379";
+            });
+
             services.AddScoped<IPayPalService, PayPalService>();
-
-
+            
             return services;
         }
-    }    
+    }
 }

@@ -173,6 +173,7 @@ namespace CameraAPI.Controllers
                 statusCode = payment.statusCode,
                 orderStatus = payment.Message
             };
+
             return Ok(response);
         }
 
