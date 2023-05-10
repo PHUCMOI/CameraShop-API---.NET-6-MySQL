@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CameraAPI.Models;
 using Microsoft.AspNetCore.Authorization;
+using CameraAPI.Services.Interfaces;
+using CameraService.Services.IRepositoryServices;
+using CameraAPI.AppModel;
 
 namespace CameraAPI.Controllers
 {
@@ -16,9 +19,77 @@ namespace CameraAPI.Controllers
     {
         private readonly Models.CameraAPIdbContext _context;
 
-        public OrdersController(Models.CameraAPIdbContext context)
+        private readonly ICameraService _camService;
+        private readonly IOrderDetailService _orderDetailService;
+        private readonly IOrderService _orderService;
+
+        public OrdersController(Models.CameraAPIdbContext context, ICameraService cameraService, IOrderService orderService, IOrderDetailService orderDetailService)
         {
             _context = context;
+
+            _camService = cameraService;
+            _orderService = orderService;
+            _orderDetailService = orderDetailService;
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<OrderRequest>> GetRandomOrder()
+        {
+            var orderList = await _orderService.GetAllOrder();
+            var orderDetailList = await _orderDetailService.GetAllOrderDetail();
+            var cameraList = await _camService.GetAllCamera();
+
+            if (!orderList.Any())
+            {
+                return NotFound();
+            }
+
+            var randomIndex = new Random().Next(0, orderList.Count());
+            var randomOrder = orderList.ElementAt(randomIndex);
+
+            var totalPrice = orderDetailList.Sum(od =>
+            {
+                var camera = cameraList.FirstOrDefault(c => c.CameraId == od.CameraId);
+                return (camera != null && od.OrderId == randomIndex) ? od.Quantity * camera.Price : 0;
+            });
+
+            var orderDetail = new OrderRequest
+            {
+                OrderId = randomIndex,
+                UserId = randomOrder.UserId,
+                Username = randomOrder.Username,
+                Address = randomOrder.Address,
+                Payment = randomOrder.Payment,
+                Status = randomOrder.Status,
+                Price = (decimal)totalPrice,
+                Message = randomOrder.Message,
+                OrderDetails = orderDetailList
+                    .Where(p => p.OrderId == randomIndex)
+                    .Select(p => new OrderDetail1
+                    {
+                        OrderId = p.OrderId,
+                        CameraId = p.CameraId,
+                        Quantity = p.Quantity,
+                        Status = p.Status,
+                        Camera = cameraList
+                            .Where(c => c.CameraId == p.CameraId)
+                            .Select(c => new Camera1
+                            {
+                                CameraId = c.CameraId,
+                                Name = c.Name,
+                                CategoryId = c.CategoryId,
+                                Brand = c.Brand,
+                                Description = c.Description,
+                                Price = c.Price,
+                                Img = c.Img,
+                                Quantity = c.Quantity
+                            })
+                            .FirstOrDefault()
+                    })
+                    .ToList()
+            };
+
+            return Ok(orderDetail);
         }
 
         // GET: api/Orders
@@ -79,6 +150,12 @@ namespace CameraAPI.Controllers
             }
 
             return NoContent();
+        }
+        [HttpPost("paypal")]
+        public async Task<ActionResult<Order>> PostOrderPayPal(OrderRequest orderRequest)
+        {
+            
+            return Ok();
         }
 
         // POST: api/Orders
