@@ -11,6 +11,7 @@ using CameraService.Services.IRepositoryServices;
 using Microsoft.Extensions.Configuration;
 using CameraCore.Models;
 using System.Security.AccessControl;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 
 namespace CameraService.Services
 {
@@ -31,10 +32,7 @@ namespace CameraService.Services
         }
 
         public async Task<PayPalPayment> CreatePaymentUrl(PaymentInformationModel model)
-        {
-            var envSandbox =
-                new SandboxEnvironment(_configuration["Paypal:ClientId"], _configuration["Paypal:SecretKey"]);
-            var client = new PayPalHttpClient(envSandbox);
+        {           
             var paypalOrderId = DateTime.Now.Ticks;
             var urlCallBack = _configuration["PaymentCallBack:ReturnUrl"];
             var payment = new PayPal.v1.Payments.Payment()
@@ -61,7 +59,7 @@ namespace CameraService.Services
                             {
                                 new Item()
                                 {
-                                    Name = " | Order: " + model.Username,
+                                    Name = " | Order: " + model.OrderDetails[0].Camera.Name,
                                     Currency = "USD",
                                     Price = model.Price.ToString(),
                                     Quantity = 1.ToString(),
@@ -69,6 +67,7 @@ namespace CameraService.Services
                                     Tax = "0",
                                     Url = "https://www.code-mega.com" // Url detail of Item
                                 }
+
                             }
                         },
                         Description = $"Invoice #{model.Message}",
@@ -87,6 +86,15 @@ namespace CameraService.Services
                     PaymentMethod = "paypal"
                 }
             };
+
+            return await ExecutePaymentAsync(payment);
+        }
+
+        public async Task<PayPalPayment> ExecutePaymentAsync(Payment payment)
+        {
+            var envSandbox =
+                new SandboxEnvironment(_configuration["Paypal:ClientId"], _configuration["Paypal:SecretKey"]);
+            var client = new PayPalHttpClient(envSandbox);
 
             var request = new PaymentCreateRequest();
             request.RequestBody(payment);
@@ -119,14 +127,14 @@ namespace CameraService.Services
             }
             var reponsePayPal = new PayPalPayment
             {
-
                 url = paymentUrl,
                 statusCode = ((int)statusCode).ToString(),
                 errorCode = null,
                 Message = "Success"
             };
-            
+
             return reponsePayPal;
         }
+
     }
 }

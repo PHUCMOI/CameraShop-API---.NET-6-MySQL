@@ -11,7 +11,8 @@ using System.Configuration;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
-
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
 // Add services to the container.
 
 builder.Services.AddControllers();
@@ -74,6 +75,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 // Repository Pattern
 builder.Services.AddDIServices(builder.Configuration);
 
+builder.Services.AddLogging(builder =>
+{
+    builder.AddConsole();
+});
 
 //builder.Services.AddDistributedMemoryCache();
 

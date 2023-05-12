@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 
 namespace CameraCore.Models
 {
-
     public class PaymentInformationModel
     {
         public int OrderId { get; set; }

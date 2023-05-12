@@ -25,16 +25,17 @@ namespace CameraAPI.Controllers
         private readonly IOrderDetailService _orderDetailService;
         private readonly IOrderService _orderService;
         private readonly IPayPalService _paypalService;
+        private readonly ILogger<OrdersController> _logger;
 
-        public OrdersController(Models.CameraAPIdbContext context, ICameraService cameraService, 
-            IOrderService orderService, IOrderDetailService orderDetailService, IPayPalService paypalService)
-        {
+        public OrdersController(Models.CameraAPIdbContext context, ICameraService cameraService, IOrderService orderService,
+            IOrderDetailService orderDetailService, IPayPalService paypalService, ILogger<OrdersController> logger)   {
             _context = context;
 
             _camService = cameraService;
             _orderService = orderService;
             _orderDetailService = orderDetailService;
             _paypalService = paypalService;
+            _logger = logger;
         }
 
         [HttpGet("random")]
@@ -54,7 +55,7 @@ namespace CameraAPI.Controllers
             var totalPrice = orderDetailList.Sum(od =>
             {
                 var camera = cameraList.FirstOrDefault(c => c.CameraId == od.CameraId);
-                return (camera != null && od.OrderId == randomIndex) ? od.Quantity * camera.Price : 0;
+                return (camera != null && od.OrderId == randomOrder.OrderId) ? od.Quantity * camera.Price : 0;
             });
 
             var orderDetail = new OrderRequest
@@ -68,7 +69,7 @@ namespace CameraAPI.Controllers
                 Price = (decimal)totalPrice,
                 Message = randomOrder.Message,
                 OrderDetails = orderDetailList
-                    .Where(p => p.OrderId == randomIndex)
+                    .Where(p => p.OrderId == randomOrder.OrderId)
                     .Select(p => new OrderDetail1
                     {
                         OrderId = p.OrderId,
@@ -93,9 +94,10 @@ namespace CameraAPI.Controllers
                     .ToList()
             };
 
-
+            _logger.LogInformation("Result {orderDetail}", orderDetail);
             return Ok(orderDetail);
         }
+
 
         // GET: api/Orders
         [HttpGet]
@@ -158,9 +160,20 @@ namespace CameraAPI.Controllers
         }
 
         [HttpPost("paypal")]
-        public async Task<ActionResult<OrderResponse>> PostOrderPayPal(PaymentInformationModel orderRequest)
+        public async Task<ActionResult<OrderResponse>> PostOrderPayPal(PaymentInformationModel orderRequest, decimal? Delivery = null, decimal? Coupon = null)
         {
+            if (!Delivery.HasValue)
+                Delivery = 0;
+            if (!Coupon.HasValue)
+                Coupon = 0;
+
+            orderRequest.Price = orderRequest.Price * 10;
+            orderRequest.Price /= 100;
+            orderRequest.Price = (decimal)(orderRequest.Price + Delivery - Coupon);
+
             var payment = await _paypalService.CreatePaymentUrl(orderRequest);
+
+            _logger.LogInformation("Price: ", orderRequest.Price.ToString());
 
             var response = new OrderResponse
             {
@@ -173,6 +186,10 @@ namespace CameraAPI.Controllers
                 statusCode = payment.statusCode,
                 orderStatus = payment.Message
             };
+            _logger.LogCritical("Created Payment.");
+            _logger.LogError("error.");
+            _logger.LogWarning("Warning.");
+            _logger.LogTrace("Trace");
 
             return Ok(response);
         }

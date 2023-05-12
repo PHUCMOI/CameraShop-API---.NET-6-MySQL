@@ -23,12 +23,14 @@ namespace CameraAPI.Controllers
         private IConfiguration _configuration;
         private IRedisCacheService _cache;
         private IDistributedCache _distributedCache;
+        private readonly ILogger<LoginController> _logger;
 
-        public LoginController(IConfiguration configuration, IRedisCacheService redisCacheService, IDistributedCache distributedCache)
+        public LoginController(IConfiguration configuration, IRedisCacheService redisCacheService, IDistributedCache distributedCache, ILogger<LoginController> logger)
         {
             _configuration = configuration;
             _cache = redisCacheService;
             _distributedCache = distributedCache;
+            _logger = logger;
         }
 
         [HttpPost]
@@ -77,7 +79,10 @@ namespace CameraAPI.Controllers
                     };
 
                     await _distributedCache.SetAsync(cacheKey, tokenBytes, cacheOptions);
-                    return Ok(_userData);
+                    _logger.LogInformation("Created Token.");
+                    
+
+                    return Ok(_userData.AccessToken);
                 }
             }
             else
