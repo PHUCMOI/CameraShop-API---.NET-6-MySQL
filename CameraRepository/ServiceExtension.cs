@@ -44,7 +44,9 @@ namespace CameraAPI.Services
             });
 
             services.AddScoped<IPayPalService, PayPalService>();
-            
+
+            services.AddLogging();
+
             return services;
         }
     }

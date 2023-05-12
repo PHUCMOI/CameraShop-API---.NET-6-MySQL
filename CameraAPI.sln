@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CameraService", "CameraServ
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CameraCore", "CameraCore\CameraCore.csproj", "{A7362CC4-0F96-4994-80FB-D118F619B33A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTest", "UnitTest\UnitTest.csproj", "{E13D2988-8CED-4B3F-96D6-BE8AC62881BD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{A7362CC4-0F96-4994-80FB-D118F619B33A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A7362CC4-0F96-4994-80FB-D118F619B33A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A7362CC4-0F96-4994-80FB-D118F619B33A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E13D2988-8CED-4B3F-96D6-BE8AC62881BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E13D2988-8CED-4B3F-96D6-BE8AC62881BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E13D2988-8CED-4B3F-96D6-BE8AC62881BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E13D2988-8CED-4B3F-96D6-BE8AC62881BD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

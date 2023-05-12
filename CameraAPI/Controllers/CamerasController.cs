@@ -32,10 +32,12 @@ namespace CameraAPI.Controllers
         public readonly IWarehouseCameraService _warehouseCameraService;
         public readonly IWarehouseCategoryService _warehouseCategoryService;
 
+        private readonly ILogger<CamerasController> _logger;
+
         public CamerasController(ICameraService cameraService, ICategoryService categoryService,
             IWarehouseCameraService warehouseCameraService,
             IWarehouseCategoryService warehouseCategoryService,
-            CameraAPIdbContext context, WarehouseDbContext warehouseDbContext)
+            CameraAPIdbContext context, WarehouseDbContext warehouseDbContext, ILogger<CamerasController> logger)
         {
             _context = context;
             _warehousecontext = warehouseDbContext;
@@ -45,6 +47,7 @@ namespace CameraAPI.Controllers
 
             _warehouseCameraService = warehouseCameraService;
             _warehouseCategoryService = warehouseCategoryService;
+            _logger = logger;
         }
 
         // GET: api/Cameras
