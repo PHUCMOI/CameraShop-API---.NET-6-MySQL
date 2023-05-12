@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Authorization;
 using CameraAPI.Services.Interfaces;
 using CameraService.Services.IRepositoryServices;
 using CameraAPI.AppModel;
+using CameraService.Services;
+using CameraCore.Models;
 
 namespace CameraAPI.Controllers
 {
@@ -22,23 +24,25 @@ namespace CameraAPI.Controllers
         private readonly ICameraService _camService;
         private readonly IOrderDetailService _orderDetailService;
         private readonly IOrderService _orderService;
+        private readonly IPayPalService _paypalService;
 
-        public OrdersController(Models.CameraAPIdbContext context, ICameraService cameraService, IOrderService orderService, IOrderDetailService orderDetailService)
+        public OrdersController(Models.CameraAPIdbContext context, ICameraService cameraService, 
+            IOrderService orderService, IOrderDetailService orderDetailService, IPayPalService paypalService)
         {
             _context = context;
 
             _camService = cameraService;
             _orderService = orderService;
             _orderDetailService = orderDetailService;
+            _paypalService = paypalService;
         }
 
-        [HttpGet]
+        [HttpGet("random")]
         public async Task<ActionResult<OrderRequest>> GetRandomOrder()
         {
             var orderList = await _orderService.GetAllOrder();
             var orderDetailList = await _orderDetailService.GetAllOrderDetail();
             var cameraList = await _camService.GetAllCamera();
-
             if (!orderList.Any())
             {
                 return NotFound();
@@ -88,6 +92,7 @@ namespace CameraAPI.Controllers
                     })
                     .ToList()
             };
+
 
             return Ok(orderDetail);
         }
@@ -151,11 +156,25 @@ namespace CameraAPI.Controllers
 
             return NoContent();
         }
+
         [HttpPost("paypal")]
-        public async Task<ActionResult<Order>> PostOrderPayPal(OrderRequest orderRequest)
+        public async Task<ActionResult<OrderResponse>> PostOrderPayPal(PaymentInformationModel orderRequest)
         {
-            
-            return Ok();
+            var payment = await _paypalService.CreatePaymentUrl(orderRequest);
+
+            var response = new OrderResponse
+            {
+                requestID = orderRequest.OrderId,
+                orderID = orderRequest.OrderId,
+                price = orderRequest.Price.ToString(),
+                responseTime = DateTime.Now,
+                payUrl = payment.url,
+                errorCode = payment.errorCode,
+                statusCode = payment.statusCode,
+                orderStatus = payment.Message
+            };
+
+            return Ok(response);
         }
 
         // POST: api/Orders
