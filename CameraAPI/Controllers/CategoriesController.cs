@@ -1,14 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Mvc;
 using CameraAPI.Models;
 using Microsoft.AspNetCore.Authorization;
-using CameraAPI.Services.Interfaces;
-using CameraAPI.Repositories;
 using CameraService.Services.IRepositoryServices;
 
 namespace CameraAPI.Controllers
@@ -25,7 +17,7 @@ namespace CameraAPI.Controllers
 
         // GET: api/Categories
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Category>>> GetCategory()
+        public async Task<IActionResult> GetCategory()
         {
             var categories = await _categoryService.GetAllCategory();
             if (categories == null)
@@ -37,14 +29,14 @@ namespace CameraAPI.Controllers
 
         // GET: api/Categories/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Category>> GetCategory(int id)
+        public async Task<Category> GetCategoryByID(int id)
         {
             var categories = await _categoryService.GetIdAsync(id);
             if (categories != null)
             {
-                return Ok(categories);
+                return categories;
             }
-            return BadRequest();
+            return null;
         }
 
         // PUT: api/Categories/5

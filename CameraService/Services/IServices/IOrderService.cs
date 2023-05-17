@@ -1,14 +1,11 @@
-﻿using CameraAPI.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using CameraAPI.AppModel;
+using CameraAPI.Models;
 
 namespace CameraService.Services.IRepositoryServices
 {
     public interface IOrderService 
-    { 
+    {
+        Task<OrderRequest> GetRandomOrder();
         Task<IEnumerable<Order>> GetAllOrder();
         Task<Order> GetIdAsync(int OrderID);
         Task<bool> Create(Order order);

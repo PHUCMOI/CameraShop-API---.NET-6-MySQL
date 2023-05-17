@@ -1,15 +1,12 @@
-﻿using CameraAPI.Models;
-using CameraAPI.Repositories;
+﻿using CameraAPI.Repositories;
 using CameraAPI.Services.Interfaces;
 using CameraCore.IRepository;
 using CameraRepository.Repositories;
 using CameraService.Services;
 using CameraService.Services.IRepositoryServices;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Configuration;
-using Microsoft.Extensions.Options;
+using CameraService.Services.IServices;
 
 namespace CameraAPI.Services
 {
@@ -30,6 +27,9 @@ namespace CameraAPI.Services
 
             services.AddScoped<IOrderService, OrderService>();
             services.AddScoped<IOrderRepository, OrderRepository>();
+
+            services.AddScoped<ILoginRepository, LoginRepository>();
+            services.AddScoped<ILoginService, LoginService>();
 
             services.AddScoped<IWarehouseCameraService, WarehouseCameraService>();
             services.AddScoped<IWarehouseCameraRepository, WarehouseCameraRepository>();

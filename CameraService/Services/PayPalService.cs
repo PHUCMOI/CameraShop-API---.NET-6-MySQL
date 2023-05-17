@@ -1,17 +1,9 @@
 ﻿using PayPal.Core;
 using PayPal.v1.Payments;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 using CameraService.Services.IRepositoryServices;
 using Microsoft.Extensions.Configuration;
 using CameraCore.Models;
-using System.Security.AccessControl;
-using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 
 namespace CameraService.Services
 {
