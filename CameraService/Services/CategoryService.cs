@@ -57,7 +57,7 @@ namespace CameraAPI.Services
         {
             if (categoryID > 0)
             {
-                var Category = await _unitOfWork.Categories.GetById(categoryID);
+                var Category = await _categoryRepository.GetById(categoryID);
                 if (Category != null)
                 {
                     return Category;
