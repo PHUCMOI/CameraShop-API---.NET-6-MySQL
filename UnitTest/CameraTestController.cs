@@ -1,21 +1,10 @@
 ﻿using CameraAPI.AppModel;
 using CameraAPI.Controllers;
 using CameraAPI.Models;
-using CameraAPI.Repositories;
-using CameraAPI.Services;
 using CameraAPI.Services.Interfaces;
 using CameraService.Services.IRepositoryServices;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Microsoft.Win32;
 using Moq;
-using Nest;
-using PayPal.v1.Orders;
-using System.Drawing.Printing;
-using System.Security.Claims;
-using Xunit.Sdk;
 
 namespace UnitTest
 {
@@ -35,69 +24,21 @@ namespace UnitTest
         }
 
         [Fact]
-        public async Task TestGetAllCamera()
+        public async Task GetAllCamera_Return_Default()
         {
-            var cameraList = GetTestCameras();
-            _cameraServiceMock.Setup(x => x.GetAllCamera()).Returns(cameraList);
-            var cameraController = new CamerasController(
-                    _cameraServiceMock.Object,
+            var cameraList = await GetTestCameras();
+            _cameraServiceMock.Setup(x => x.GetAllCamera()).ReturnsAsync(cameraList);
+            var _camerasController = new CamerasController(_cameraServiceMock.Object,
                     _categoryServiceMock.Object,
                     _warehouseCameraServiceMock.Object,
-                    _warehouseCategoryServiceMock.Object
-                );
-            var cameraResult = await cameraController.GetCameras();
+                    _warehouseCategoryServiceMock.Object);
+            var cameraResult = await _camerasController.GetCameras();
 
             Assert.NotNull(cameraResult);
         }
 
         [Fact]
-        public async Task TestGetCameraByLINQ()
-        {
-            // Arrange  
-            var cameraList = await GetTestCameras();
-            var camera = cameraList[1];
-            _cameraServiceMock.Setup(x => x.GetAllCamera()).ReturnsAsync(cameraList);
-
-            var cameraController = new CamerasController(
-                 _cameraServiceMock.Object,
-                 _categoryServiceMock.Object,
-                 _warehouseCameraServiceMock.Object,
-                 _warehouseCategoryServiceMock.Object
-             );
-
-            var claims = new[]
-            {
-                new Claim(ClaimTypes.Role, "admin")
-            };
-            var identity = new ClaimsIdentity(claims, "TestAuthType");
-            var principal = new ClaimsPrincipal(identity);
-            var httpContext = new DefaultHttpContext
-            {
-                User = principal
-            };
-
-            cameraController.ControllerContext = new ControllerContext
-            {
-                HttpContext = httpContext
-            };
-
-            // Act
-            var cameraResult = await cameraController.GetCameraByLINQ(1, null, null, null, null, null, null, null);
-            var okResult = cameraResult.Result as OkObjectResult;
-            var paginationCameraResponse = (cameraResult.Result as OkObjectResult)?.Value as List<PaginationCameraResponse>;
-
-            // Assert
-            Assert.NotNull(okResult);
-            Assert.NotNull(paginationCameraResponse);
-            Assert.Single(paginationCameraResponse);
-            Assert.Equal(1, paginationCameraResponse[0].PageIndex);
-            Assert.Equal(3, paginationCameraResponse[0].PageSize);
-            Assert.Equal(3, paginationCameraResponse[0].Camera.Count);
-            Assert.NotNull(cameraList);
-        }
-
-        [Fact]
-        public async Task GetFromStoredProcedure_Returns_PaginationResponse()
+        public async Task GetAllCameraByLINQ_Returns_PaginationResponse()
         {
             // Arrange
             var cameraList = await GetTestCameras();
@@ -105,86 +46,108 @@ namespace UnitTest
             var pageSize = 3;
             var expectedTotalPages = (int)Math.Ceiling((decimal)cameraList.Count / pageSize);
 
-            _cameraServiceMock.Setup(x => x.GetAllCamera()).ReturnsAsync(cameraList);
+            var cameraResponseList = MapCameraToCameraResponse(cameraList);
 
-            var cameraController = new CamerasController(
-                _cameraServiceMock.Object,
+            _cameraServiceMock.Setup(x => x.GetCameraByLINQ(pageNumber, null, null, null, null, null, null, null))
+                .ReturnsAsync(MapCameraResponse(cameraResponseList, pageNumber));
+
+            var camerasController = new CamerasController(_cameraServiceMock.Object,
                 _categoryServiceMock.Object,
                 _warehouseCameraServiceMock.Object,
-                _warehouseCategoryServiceMock.Object
-            );
-
-            var claims = new[]
-            {
-                new Claim(ClaimTypes.Role, "admin")
-            };
-            var identity = new ClaimsIdentity(claims, "TestAuthType");
-            var principal = new ClaimsPrincipal(identity);
-            var httpContext = new DefaultHttpContext
-            {
-                User = principal
-            };
-
-            cameraController.ControllerContext = new ControllerContext
-            {
-                HttpContext = httpContext
-            };
-
-            // Act
-            var result = await cameraController.GetFromStoredProcedure(pageNumber, null, null, null, null);
-            var okResult = result.Result as OkObjectResult;
-            var paginationCameraResponse = okResult.Value as List<PaginationCameraResponse>;
-
-            // Assert
-            Assert.NotNull(okResult);
-            Assert.NotNull(paginationCameraResponse);
-            Assert.Single(paginationCameraResponse);
-            Assert.Equal(pageNumber, paginationCameraResponse[0].PageIndex);
-            Assert.Equal(pageSize, paginationCameraResponse[0].PageSize);
-            Assert.Equal(expectedTotalPages, paginationCameraResponse[0].TotalPage);
-            Assert.Equal(pageSize, paginationCameraResponse[0].Camera.Count);
-        }
-
-
-        [Fact]
-        public async Task TestGetCameraBySQL()
-        {
-            var cameraList = await GetTestCameras();
-            var camera = cameraList[1];
-            _cameraServiceMock.Setup(x => x.GetAllCamera()).ReturnsAsync(cameraList);
-            var cameraController = new CamerasController(_cameraServiceMock.Object,
-                _categoryServiceMock.Object,
-                _warehouseCameraServiceMock.Object, 
                 _warehouseCategoryServiceMock.Object);
 
-            var claims = new[]
-            {
-                    new Claim(ClaimTypes.Role, "admin")
-            };
-            var identity = new ClaimsIdentity(claims, "TestAuthType");
-            var principal = new ClaimsPrincipal(identity);
-            var httpContext = new DefaultHttpContext
-            {
-                User = principal
-            };
+            // Act
+            var result = await camerasController.GetCameraByLINQ(pageNumber, null, null, null, null, null, null, null);
 
-            cameraController.ControllerContext = new ControllerContext
-            {
-                HttpContext = httpContext
-            };
-
-            var cameraResult = await cameraController.GetCameraByRawQuery(1);
-            var paginationCameraResponse = (cameraResult.Result as OkObjectResult)?.Value as List<PaginationCameraResponse>;
             // Assert
-            Assert.NotNull(paginationCameraResponse);
-            Assert.Single(paginationCameraResponse);
-            Assert.Equal(1, paginationCameraResponse[0].PageIndex);
-            Assert.Equal(3, paginationCameraResponse[0].PageSize);
+            var actionResult = Assert.IsType<ActionResult<PaginationCameraResponse>>(result);
+            var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
+            var paginationResponse = Assert.IsType<List<PaginationCameraResponse>>(okResult.Value);
+
+
+            Assert.NotNull(result);
+            Assert.NotNull(actionResult);
+            Assert.NotNull(okResult);
+            Assert.NotNull(paginationResponse);
+            Assert.Equal(cameraResponseList[0].CameraName, paginationResponse[0].Camera[0].CameraName);
+            Assert.Equal(pageSize, paginationResponse[0].PageSize);
+            Assert.Equal(pageSize, paginationResponse[0].Camera.Count);
         }
 
-       /* [Fact]
-        public async Task TestCreateCamera()
+        [Fact]
+        public async Task GetFromStoredProcedure_Returns_PaginationResponse()
         {
+            // Arrange
+            var cameraList = await GetTestCameras(); 
+            var pageNumber = 1;
+            var pageSize = 3;
+            var expectedTotalPages = (int)Math.Ceiling((decimal)cameraList.Count / pageSize);
+
+            var cameraResponseList = MapCameraToCameraResponse(cameraList);
+
+            _cameraServiceMock.Setup(x => x.GetFromStoredProcedure(pageNumber, null, null, null, null, null, null))
+                .ReturnsAsync(MapCameraResponse(cameraResponseList, pageNumber)); 
+           
+            var _camerasController = new CamerasController(_cameraServiceMock.Object,
+                    _categoryServiceMock.Object,
+                    _warehouseCameraServiceMock.Object,
+                    _warehouseCategoryServiceMock.Object);
+            // Act
+            var result = await _camerasController.GetFromStoredProcedure(pageNumber, null, null, null, null, null, null);
+
+            // Assert
+            var actionResult = Assert.IsType<ActionResult<List<PaginationCameraResponse>>>(result);
+            var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
+            var paginationResponse = Assert.IsType<List<PaginationCameraResponse>>(okResult.Value);
+
+            Assert.NotNull(result);
+            Assert.NotNull(actionResult);
+            Assert.NotNull(okResult);
+            Assert.NotNull(paginationResponse);
+            Assert.Equal(cameraResponseList[0].CameraName, paginationResponse[0].Camera[0].CameraName);
+            Assert.Equal(pageSize, paginationResponse[0].PageSize);
+            Assert.Equal(pageSize, paginationResponse[0].Camera.Count);
+        }
+
+        [Fact]
+        public async Task GetAllCameraBySQL_Returns_PaginationResponse()
+        {
+            // Arrange
+            var cameraList = await GetTestCameras();
+            var pageNumber = 1;
+            var pageSize = 3;
+            var expectedTotalPages = (int)Math.Ceiling((decimal)cameraList.Count / pageSize);
+
+            var cameraResponseList = MapCameraToCameraResponse(cameraList);
+
+            _cameraServiceMock.Setup(x => x.GetCameraBySQL(pageNumber, null, null, null, null, null, null, null))
+                .ReturnsAsync(MapCameraResponse(cameraResponseList, pageNumber));
+
+            var _camerasController = new CamerasController(_cameraServiceMock.Object,
+                    _categoryServiceMock.Object,
+                    _warehouseCameraServiceMock.Object,
+                    _warehouseCategoryServiceMock.Object);
+            // Act
+            var result = await _camerasController.GetCameraByRawQuery(pageNumber, null, null, null, null, null, null, null);
+
+            // Assert
+            var actionResult = Assert.IsType<ActionResult<List<PaginationCameraResponse>>>(result);
+            var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
+            var paginationResponse = Assert.IsType<List<PaginationCameraResponse>>(okResult.Value);
+
+            Assert.NotNull(result);
+            Assert.NotNull(actionResult);
+            Assert.NotNull(okResult);
+            Assert.NotNull(paginationResponse);
+            Assert.Equal(cameraResponseList[0].CameraName, paginationResponse[0].Camera[0].CameraName);
+            Assert.Equal(pageSize, paginationResponse[0].PageSize);
+            Assert.Equal(pageSize, paginationResponse[0].Camera.Count);
+        }
+
+        [Fact]
+        public async Task TestCreateNewCamera_Return_200()
+        {
+            // Arrange
             var newCamera = new Camera
             {
                 CameraId = 1,
@@ -203,26 +166,93 @@ namespace UnitTest
                 IsDelete = false
             };
 
-            var cameraController = new CamerasController(
-                _cameraServiceMock.Object,
+            _cameraServiceMock.Setup(x => x.Create(newCamera))
+                .ReturnsAsync(true);
+
+            var camerasController = new CamerasController(_cameraServiceMock.Object,
                 _categoryServiceMock.Object,
                 _warehouseCameraServiceMock.Object,
-                _warehouseCategoryServiceMock.Object
+                _warehouseCategoryServiceMock.Object);
 
-            var cameraResult = await cameraController.PostCamera(newCamera);
+            // Act
+            var result = await camerasController.PostCamera(newCamera);
 
-            Assert.NotNull(cameraResult);
-            _cameraServiceMock.Verify();
-        }*/
+            // Assert
+            var actionResult = Assert.IsType<ActionResult<Camera>>(result);
+            var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
+            var cameraDetail = Assert.IsType<bool>(okResult.Value);
+
+            Assert.True(cameraDetail);
+            _cameraServiceMock.Verify(x => x.Create(newCamera), Times.Once);
+        }
+
+        [Fact]
+        public async Task TestUpdateCamera_Return_NewCamera()
+        {
+            // Arrange
+            var camera = new Camera
+            {
+                CameraId = 1,
+                Name = "Sony Vip Pro",
+                Brand = "Sony",
+                CategoryId = 1,
+                Description = "description",
+                Img = "111",
+                Price = 1234,
+                Quantity = 1,
+                Sold = 1,
+                CreatedBy = 1,
+                CreatedDate = DateTime.Now,
+                UpdatedBy = 1,
+                UpdatedDate = DateTime.Now,
+                IsDelete = false
+            };
+
+            _cameraServiceMock.Setup(x => x.Update(camera))
+                .ReturnsAsync(true);
+
+            var camerasController = new CamerasController(_cameraServiceMock.Object,
+                _categoryServiceMock.Object,
+                _warehouseCameraServiceMock.Object,
+                _warehouseCategoryServiceMock.Object);
+
+            var updateCamera = new Camera
+            {
+                CameraId = 1,
+                Name = "Sony Vip",
+                Brand = "Sony",
+                CategoryId = 1,
+                Description = "description",
+                Img = "111",
+                Price = 1234,
+                Quantity = 1,
+                Sold = 1,
+                CreatedBy = 1,
+                CreatedDate = DateTime.Now,
+                UpdatedBy = 1,
+                UpdatedDate = DateTime.Now,
+                IsDelete = false
+            };
+
+            // Act
+            var result = await camerasController.PutCamera(updateCamera);
+
+            // Assert
+            var actionResult = Assert.IsType<OkObjectResult>(result);
+            var cameraDetails = Assert.IsType<bool>(actionResult.Value);
+            Assert.True(cameraDetails);
+
+            _cameraServiceMock.Verify(x => x.Update(updateCamera), Times.Once);
+        }
 
         // Fake Data
         private async Task<List<Camera>> GetTestCameras()
         {
             var cameras = new List<Camera>();
-            cameras.Add(new Camera { CameraId = 1, Brand = "Sony", CategoryId = 2, Description = "123", Img = "321", Name = "Phucc", Price = 100, Quantity = 20, Sold = 5, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now, IsDelete = false });
-            cameras.Add(new Camera { CameraId = 2, Brand = "Sony", CategoryId = 2, Description = "123", Img = "321", Name = "Phucc", Price = 100, Quantity = 20, Sold = 5, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now, IsDelete = false });
-            cameras.Add(new Camera { CameraId = 3, Brand = "Sony", CategoryId = 2, Description = "123", Img = "321", Name = "Phucc", Price = 100, Quantity = 20, Sold = 5, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now, IsDelete = false });
-            cameras.Add(new Camera { CameraId = 4, Brand = "Sony", CategoryId = 2, Description = "123", Img = "321", Name = "Phucc", Price = 100, Quantity = 20, Sold = 5, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now, IsDelete = false });
+            cameras.Add(new Camera { CameraId = 1, Brand = "Sony", CategoryId = 2, Description = "123", Img = "321", Name = "Phucc1", Price = 100, Quantity = 20, Sold = 5, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now, IsDelete = false });
+            cameras.Add(new Camera { CameraId = 2, Brand = "Sony", CategoryId = 2, Description = "123", Img = "321", Name = "Phucc2", Price = 100, Quantity = 20, Sold = 5, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now, IsDelete = false });
+            cameras.Add(new Camera { CameraId = 3, Brand = "Sony", CategoryId = 2, Description = "123", Img = "321", Name = "Phucc3", Price = 100, Quantity = 20, Sold = 5, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now, IsDelete = false });
+            cameras.Add(new Camera { CameraId = 4, Brand = "Sony", CategoryId = 2, Description = "123", Img = "321", Name = "Phucc4", Price = 100, Quantity = 20, Sold = 5, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now, IsDelete = false });
 
             return cameras;
         }
@@ -235,6 +265,44 @@ namespace UnitTest
             cameras.Add(new WarehouseCamera { CameraId = 4, Brand = "Sony", CategoryId = 2, Description = "123", Img = "321", Name = "Phucc", Price = 100, Quantity = 20, Sold = 5, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now, IsDelete = false });
 
             return cameras;
+        }
+        private List<PaginationCameraResponse> MapCameraResponse(List<CameraResponse> cameras, int pageNumber)
+        {
+            var cameraList = cameras.ToList();
+            var count = cameraList.Count;
+            var pageSize = 3;
+            var totalPage = (int)Math.Ceiling((decimal)count / pageSize);
+            if (pageNumber == 0) pageNumber = 1;
+
+            var paginationResponse = new PaginationCameraResponse
+            {
+                Camera = cameraList.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList(),
+                PageIndex = pageNumber,
+                PageSize = pageSize,
+                TotalPage = totalPage
+            };
+
+            return new List<PaginationCameraResponse> { paginationResponse };
+        }
+
+        private List<CameraResponse> MapCameraToCameraResponse(List<Camera> cameras)
+        {
+            if (cameras == null)
+            {
+                return null;
+            }
+
+            return cameras.Select(camera => new CameraResponse
+            {
+                CameraName = camera.Name,
+                Brand = camera.Brand,
+                Price = camera.Price,
+                Img = camera.Img,
+                Quantity = camera.Quantity,
+                Description = camera.Description,
+                CategoryName = camera.CategoryId.ToString(),
+                BestSeller = camera.Sold.ToString()
+            }).ToList();
         }
     }
 }

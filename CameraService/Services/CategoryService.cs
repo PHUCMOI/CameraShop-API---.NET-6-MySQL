@@ -1,6 +1,5 @@
 ﻿using CameraAPI.Models;
 using CameraAPI.Repositories;
-using CameraAPI.Services.Interfaces;
 using CameraService.Services.IRepositoryServices;
 
 namespace CameraAPI.Services

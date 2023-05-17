@@ -1,12 +1,9 @@
 ﻿using CameraAPI.Models;
-using CameraAPI.Repositories;
 using CameraAPI.Services;
-using CameraAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using System.Configuration;
 
 using System.Text;
 

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace CameraService.Services.IRepositoryServices
+﻿namespace CameraService.Services.IRepositoryServices
 {
     public interface IRedisCacheService
     {

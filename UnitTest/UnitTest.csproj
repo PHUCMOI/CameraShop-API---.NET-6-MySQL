@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CameraAPI\CameraAPI.csproj" />
+    <ProjectReference Include="..\CameraCore\CameraCore.csproj" />
     <ProjectReference Include="..\CameraService\CameraService.csproj" />
   </ItemGroup>
 

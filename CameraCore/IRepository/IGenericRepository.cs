@@ -1,7 +1,4 @@
-﻿using CameraAPI.Models;
-using Microsoft.EntityFrameworkCore;
-
-namespace CameraAPI.Repositories
+﻿namespace CameraAPI.Repositories
 {
     public interface IGenericRepository<T> where T : class
     {

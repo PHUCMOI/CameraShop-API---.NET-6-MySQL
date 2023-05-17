@@ -1,18 +1,6 @@
 ﻿using CameraAPI.AppModel;
-using CameraAPI.Models;
-using CameraService.Services.IRepositoryServices;
 using CameraService.Services.IServices;
-using FiftyOne.Foundation.Mobile.Detection.Caching;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.IdentityModel.Tokens;
-using StackExchange.Redis;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using System.Text.Json;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace CameraAPI.Controllers
 {

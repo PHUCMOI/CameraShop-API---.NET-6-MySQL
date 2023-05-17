@@ -3,11 +3,6 @@ using CameraAPI.Models;
 using CameraAPI.Repositories;
 using CameraAPI.Services.Interfaces;
 using CameraService.Services.IRepositoryServices;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
-using System.Data.SqlClient;
-using System.Net.Http;
-using System.Security.Claims;
 
 namespace CameraAPI.Services
 {
