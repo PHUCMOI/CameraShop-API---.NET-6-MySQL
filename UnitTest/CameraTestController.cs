@@ -20,7 +20,7 @@ namespace UnitTest
             _cameraServiceMock = new Mock<ICameraService>();
             _categoryServiceMock = new Mock<ICategoryService>();
             _warehouseCameraServiceMock = new Mock<IWarehouseCameraService>();
-            _warehouseCategoryServiceMock = new Mock<IWarehouseCategoryService>();
+            _warehouseCategoryServiceMock = new Mock<IWarehouseCategoryService>();  
         }
 
         [Fact]
@@ -187,7 +187,7 @@ namespace UnitTest
         }
 
         [Fact]
-        public async Task TestUpdateCamera_Return_NewCamera()
+        public async Task TestUpdateCamera_ReturnsOkWithTrueValue()
         {
             // Arrange
             var camera = new Camera
@@ -216,34 +216,20 @@ namespace UnitTest
                 _warehouseCameraServiceMock.Object,
                 _warehouseCategoryServiceMock.Object);
 
-            var updateCamera = new Camera
-            {
-                CameraId = 1,
-                Name = "Sony Vip",
-                Brand = "Sony",
-                CategoryId = 1,
-                Description = "description",
-                Img = "111",
-                Price = 1234,
-                Quantity = 1,
-                Sold = 1,
-                CreatedBy = 1,
-                CreatedDate = DateTime.Now,
-                UpdatedBy = 1,
-                UpdatedDate = DateTime.Now,
-                IsDelete = false
-            };
-
             // Act
-            var result = await camerasController.PutCamera(updateCamera);
+            var result = await camerasController.PutCamera(camera);
 
             // Assert
-            var actionResult = Assert.IsType<OkObjectResult>(result);
-            var cameraDetails = Assert.IsType<bool>(actionResult.Value);
-            Assert.True(cameraDetails);
+            Assert.IsType<OkObjectResult>(result);
 
-            _cameraServiceMock.Verify(x => x.Update(updateCamera), Times.Once);
+            var actionResult = Assert.IsType<OkObjectResult>(result);
+            Assert.IsType<bool>(actionResult.Value);
+            Assert.True((bool)actionResult.Value);
+
+            _cameraServiceMock.Verify(x => x.Update(camera), Times.Once);
         }
+
+
 
         // Fake Data
         private async Task<List<Camera>> GetTestCameras()

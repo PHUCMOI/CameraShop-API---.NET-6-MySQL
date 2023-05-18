@@ -13,12 +13,10 @@ namespace CameraAPI.Controllers
     {
         private readonly IOrderService _orderService;
         private readonly IPayPalService _paypalService;
-        private readonly ILogger<OrdersController> _logger;
 
-        public OrdersController(Models.CameraAPIdbContext context, IPayPalService paypalService, ILogger<OrdersController> logger, IOrderService orderService)   
+        public OrdersController(IPayPalService paypalService, IOrderService orderService)   
         {
             _paypalService = paypalService;
-            _logger = logger;
             _orderService = orderService;
         }
 
@@ -96,8 +94,6 @@ namespace CameraAPI.Controllers
 
             var payment = await _paypalService.CreatePaymentUrl(orderRequest);
 
-            _logger.LogInformation("Price: ", orderRequest.Price.ToString());
-
             var response = new OrderResponse
             {
                 requestID = orderRequest.OrderId,
@@ -109,10 +105,6 @@ namespace CameraAPI.Controllers
                 statusCode = payment.statusCode,
                 orderStatus = payment.Message
             };
-            _logger.LogCritical("Created Payment.");
-            _logger.LogError("error.");
-            _logger.LogWarning("Warning.");
-            _logger.LogTrace("Trace");
 
             return Ok(response);
         }
