@@ -4,6 +4,8 @@ using CameraAPI.Services.Interfaces;
 using CameraAPI.Models;
 using CameraAPI.AppModel;
 using CameraService.Services.IRepositoryServices;
+using CameraCore.Models;
+using System.Security.Claims;
 
 namespace CameraAPI.Controllers
 {
@@ -31,7 +33,7 @@ namespace CameraAPI.Controllers
 
         // GET: api/Cameras
         [HttpGet]
-        public async Task<ActionResult<List<Camera>>> GetCameras()
+        public async Task<ActionResult<List<CameraResponse>>> GetCameras()
         {
             var CameraList = await _camService.GetAllCamera();
             if (CameraList == null)
@@ -43,7 +45,7 @@ namespace CameraAPI.Controllers
 
         // GET: api/Cameras/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Camera>> GetCamera(int id)
+        public async Task<ActionResult<CameraResponseID>> GetCamera(int id)
         {
             var CameraDetail = await _camService.GetIdAsync(id);
             if (CameraDetail != null)
@@ -79,27 +81,34 @@ namespace CameraAPI.Controllers
         
         [HttpGet("stored-procedure")]
         public async Task<ActionResult<List<PaginationCameraResponse>>> GetFromStoredProcedure(int pageNumber, int? categoryID = null, string? name = null,
-            string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, int? quantity = null)
+            string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null, int? quantity = null)
         {
-            var CameraDetail = await _camService.GetFromStoredProcedure(pageNumber, categoryID, name, brand, minPrice, maxPrice, quantity);
-            if (CameraDetail != null)
+            try
             {
-                return Ok(CameraDetail);
+                var CameraDetail = await _camService.GetFromStoredProcedure(pageNumber, categoryID, name, brand, minPrice, maxPrice, FilterType, quantity);
+                if (CameraDetail != null)
+                {
+                    return Ok(CameraDetail);
+                }
+            }
+            catch (Exception ex)
+            {                
             }
             return BadRequest();
-
         }
 
         // PUT: api/Cameras/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutCamera(Camera camera)
+        public async Task<IActionResult> PutCamera(CameraResponse camera, int id)
         {
             try
             {
+                var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
+                var nameIdentifierValue = userIdentity.Claims.ToList();
                 if (camera != null)
                 {
-                    var CameraDetails = await _camService.Update(camera);
+                    var CameraDetails = await _camService.Update(camera, nameIdentifierValue[3].Value, id);
                     if (CameraDetails)
                     {
                         return Ok(CameraDetails);
@@ -107,8 +116,7 @@ namespace CameraAPI.Controllers
                 }
                 return BadRequest();
             }
-            catch (Exception ex)
-            {
+            catch (Exception ex)            {
 
                 return BadRequest();
             }
@@ -117,9 +125,11 @@ namespace CameraAPI.Controllers
         // POST: api/Cameras
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Camera>> PostCamera(Camera camera)
+        public async Task<ActionResult<Camera>> PostCamera(CameraPostRequest cameraPostRequest)
         {
-            var CameraDetail = await _camService.Create(camera);
+            var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
+            var nameIdentifierValue = userIdentity.Claims.ToList();
+            var CameraDetail = await _camService.Create(cameraPostRequest, nameIdentifierValue[3].Value);
             if (CameraDetail)
             {
                 return Ok(CameraDetail);

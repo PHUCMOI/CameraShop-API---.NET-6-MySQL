@@ -9,6 +9,6 @@ namespace CameraService.Services.IServices
 {
     public interface ILoginService
     {
-        string Login(UserModel _userData);
+        string Login(string username);
     }
 }

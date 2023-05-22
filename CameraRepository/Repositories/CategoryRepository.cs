@@ -1,4 +1,6 @@
 ﻿using CameraAPI.Models;
+using CameraCore.Models;
+using static Dapper.SqlMapper;
 
 namespace CameraAPI.Repositories
 {

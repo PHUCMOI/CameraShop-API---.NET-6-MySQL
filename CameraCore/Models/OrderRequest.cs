@@ -2,7 +2,7 @@
 
 namespace CameraAPI.AppModel
 {
-    public class OrderRequest
+    public class OrderRequestPayPal
     {
         public int OrderId { get; set; }
         public int UserId { get; set; }
@@ -36,5 +36,16 @@ namespace CameraAPI.AppModel
         public int? Quantity { get; set; }
         public int Sold { get; set; }
 
+    }
+
+    public class OrderRequest
+    {
+        public int UserId { get; set; }
+        public string Username { get; set; }
+        public string Address { get; set; }
+        public string Payment { get; set; }
+        public string Status { get; set; }
+        public decimal? Price { get; set; }
+        public string Message { get; set; }
     }
 }

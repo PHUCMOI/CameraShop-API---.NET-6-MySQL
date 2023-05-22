@@ -30,13 +30,12 @@ namespace UnitTest
             var orderRequest = new PaymentInformationModel
             {
                 OrderId = 1,
-                Price = 100 // Giá trị thích hợp cho test case của bạn
-                            // Các thuộc tính khác của orderRequest cần thiết cho test case của bạn
+                Price = 100
             };
 
             var payment = new PayPalPayment
             {
-                url = "https://example.com/paypal-url", // Url giả định trả về từ _paypalService.CreatePaymentUrl
+                url = "https://example.com/paypal-url",
                 statusCode = "200",
                 errorCode = null,
                 Message = "Success"
@@ -49,7 +48,7 @@ namespace UnitTest
             {
                 requestID = orderRequest.OrderId,
                 orderID = orderRequest.OrderId,
-                price = orderRequest.Price.ToString(),
+                price = (orderRequest.Price + orderRequest.Price * 10 / 100).ToString(),
                 responseTime = DateTime.Now,
                 payUrl = payment.url,
                 errorCode = payment.errorCode,
@@ -63,19 +62,19 @@ namespace UnitTest
             var result = await controller.PostOrderPayPal(orderRequest);
 
             // Assert
-            // Assert
-            var response = Assert.IsAssignableFrom<OrderResponse>(result);
+            var response = Assert.IsAssignableFrom<ActionResult<OrderResponse>>(result);
 
-            Assert.Equal(orderResponse.requestID, response.requestID);
-            Assert.Equal(orderResponse.orderID, response.orderID);
-            Assert.Equal(orderResponse.price, response.price);
-            Assert.Equal(orderResponse.responseTime, response.responseTime);
-            Assert.Equal(orderResponse.payUrl, response.payUrl);
-            Assert.Equal(orderResponse.errorCode, response.errorCode);
-            Assert.Equal(orderResponse.statusCode, response.statusCode);
-            Assert.Equal(orderResponse.orderStatus, response.orderStatus);
+            Assert.NotNull(response.Value);
 
+            var orderResponseValue = response.Value;
+
+            Assert.Equal(orderResponse.requestID, orderResponseValue.requestID);
+            Assert.Equal(orderResponse.orderID, orderResponseValue.orderID);
+            Assert.Equal(orderResponse.price, orderResponseValue.price);
+            Assert.Equal(orderResponse.payUrl, orderResponseValue.payUrl);
+            Assert.Equal(orderResponse.errorCode, orderResponseValue.errorCode);
+            Assert.Equal(orderResponse.statusCode, orderResponseValue.statusCode);
+            Assert.Equal(orderResponse.orderStatus, orderResponseValue.orderStatus);
         }
-
     }
 }

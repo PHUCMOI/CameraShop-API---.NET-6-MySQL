@@ -1,13 +1,14 @@
 ﻿using CameraAPI.Models;
+using CameraCore.Models;
 
 namespace CameraService.Services.IRepositoryServices
 {
     public interface ICategoryService
     {
-        Task<IEnumerable<Category>> GetAllCategory();
-        Task<Category> GetIdAsync(int categoryID);
-        Task<bool> Create(Category category);
-        Task<bool> Update(Category category);
+        Task<IEnumerable<CategoryResponse>> GetAllCategory();
+        Task<CategoryResponse> GetIdAsync(int categoryID);
+        Task<bool> Create(CategoryRequest category, string userID);
+        Task<bool> Update(CategoryResponse categoryResponse, string UserID, int id);
         Task<bool> DeleteAsync(int categoryID);
     }
 }

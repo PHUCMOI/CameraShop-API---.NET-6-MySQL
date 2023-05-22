@@ -2,34 +2,62 @@
 using CameraAPI.Models;
 using CameraAPI.Repositories;
 using CameraAPI.Services.Interfaces;
+using CameraCore.Models;
 using CameraService.Services.IRepositoryServices;
+using CameraService.Services.IServices;
+using Castle.Core.Logging;
+using Microsoft.Extensions.Logging;
+using PayPal.v1.Orders;
 
 namespace CameraAPI.Services
 {
     public class CameraService : ICameraService
     {
-        public IUnitOfWork _unitOfWork;
+        private IUnitOfWork _unitOfWork;
         private readonly ICameraRepository _cameraRepository;
 
         private readonly ICategoryService _categoryService;
-        public readonly IWarehouseCameraService _warehouseCameraService;
-        public readonly IWarehouseCategoryService _warehouseCategoryService;
+        private readonly IWarehouseCameraService _warehouseCameraService;
+        private readonly IWarehouseCategoryService _warehouseCategoryService;
+
+        private readonly IAutoMapperService _autoMapperService;
+
+        private ILogger<CameraService> _logger;
 
         public CameraService(IUnitOfWork unitOfWork, ICategoryService categoryService, IWarehouseCameraService warehouseCameraService,
-            IWarehouseCategoryService warehouseCategoryService, ICameraRepository cameraRepository) 
+            IWarehouseCategoryService warehouseCategoryService, ICameraRepository cameraRepository, ILogger<CameraService> logger,
+            IAutoMapperService autoMapperService) 
         {
             _unitOfWork = unitOfWork;
             _categoryService = categoryService;
             _warehouseCameraService = warehouseCameraService;
             _warehouseCategoryService = warehouseCategoryService;
             _cameraRepository = cameraRepository;
+            _logger = logger;
+            _autoMapperService = autoMapperService;
         }
 
-        public async Task<bool> Create(Camera camera)
+        public async Task<bool> Create(CameraPostRequest cameraPostRequest, string UserID)
         {
-            if(camera != null)
+            if(cameraPostRequest != null)
             {
-                await _unitOfWork.Cameras.Create(camera);
+                var camera = new Camera()
+                {
+                    Name = cameraPostRequest.Name,
+                    CategoryId = cameraPostRequest.CategoryId,
+                    Brand = cameraPostRequest.Brand,
+                    Description = cameraPostRequest.Description,
+                    Price = cameraPostRequest.Price,
+                    Img = cameraPostRequest.Img,
+                    Quantity = cameraPostRequest.Quantity,
+                    CreatedBy = Convert.ToInt16(UserID),
+                    CreatedDate = DateTime.Now,
+                    UpdatedBy = Convert.ToInt16(UserID),   
+                    UpdatedDate = DateTime.Now,
+                    IsDelete = false
+                };
+
+                await _cameraRepository.Create(camera);
 
                 //Lưu xuống db 
                 var result = _unitOfWork.Save();
@@ -57,20 +85,52 @@ namespace CameraAPI.Services
             return false;
         }
 
-        public async Task<List<Camera>> GetAllCamera()
+        public async Task<List<CameraResponse>> GetAllCamera()
         {
-            var CameraList = await _unitOfWork.Cameras.GetAll();
-            return CameraList;
+            var cameraList = await _unitOfWork.Cameras.GetAll();
+            var categories = await _categoryService.GetAllCategory();
+            var cameraResponseList = _autoMapperService.MapList<Camera, CameraResponse>(cameraList);
+
+            var sortedCameraResponseList = cameraResponseList.OrderByDescending(c => c.BestSeller).ThenByDescending(c => c.CategoryName).ToList();
+
+            int rank = 1;
+            int previousCount = 0;
+
+            for (int i = 0; i < sortedCameraResponseList.Count; i++)
+            {
+                var cameraResponse = sortedCameraResponseList[i];
+
+                var currentCount = Convert.ToInt32(cameraResponse.BestSeller);
+
+                var category = categories.FirstOrDefault(c => c.CategoryId == Convert.ToInt16(cameraResponse.CategoryName));
+                if (category != null)
+                {
+                    cameraResponse.CategoryName = category.Name;
+                }
+
+                if (i > 0 && currentCount != previousCount)
+                {
+                    rank = i + 1;
+                }
+
+                cameraResponse.BestSeller = "Top " + rank + " Seller";
+
+                previousCount = currentCount;
+            }
+
+            return sortedCameraResponseList;
         }
+
+
+
 
         public async Task<List<PaginationCameraResponse>> GetCameraByLINQ(int pageNumber, int? categoryID = null,
             string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null,
-        string? FilterType = null, int? quantity = null)
+            string? FilterType = null, int? quantity = null)
         {
             try
             {
-
-                var cameras = await GetAllCamera();
+                var cameras = await _cameraRepository.GetAll();
                 var categories = await _categoryService.GetAllCategory();
 
                 var shopQuery = from camera in cameras
@@ -90,10 +150,12 @@ namespace CameraAPI.Services
                                     IsWarehouseCamera = false,
                                     Quantity = (int)camera.Quantity,
                                     Img = camera.Img,
-                                    Description = camera.Description
+                                    Description = camera.Description,
                                 };
 
-                var result = shopQuery;
+                var rankedShopQuery = shopQuery.ToList();
+
+                var result = rankedShopQuery.AsQueryable();
 
                 var warehouseCamera = await _warehouseCameraService.GetAllCamera();
                 var warehouseCategory = await _warehouseCategoryService.GetAllCategory();
@@ -114,10 +176,37 @@ namespace CameraAPI.Services
                                          IsWarehouseCamera = true,
                                          Quantity = (int)camera.Quantity,
                                          Img = camera.Img,
-                                         Description = camera.Description
+                                         Description = camera.Description,
                                      };
 
-                result = result.Union(warehouseQuery);
+                var rankedWarehouseQuery = warehouseQuery.ToList();
+
+                // Gán rank cho các mục có số lượng bán hàng bằng nhau
+                var groupedResult = result
+                    .Concat(rankedWarehouseQuery)                    
+                    .ToList();
+
+                int rank = 1;
+                int previousCount = 0;
+
+                for (int i = 0; i < groupedResult.Count; i++)
+                {
+                    var cameraResponse = groupedResult[i];
+                    var currentCount = Convert.ToInt32(cameraResponse.Sold);
+                   
+                    if (i > 0 && currentCount != previousCount)
+                    {
+                        rank = i + 1;
+                    }
+
+                    cameraResponse.Rank = rank;
+
+                    previousCount = currentCount;
+                }
+
+                result = groupedResult.AsQueryable();
+
+
 
 
                 if (categoryID.HasValue)
@@ -144,7 +233,7 @@ namespace CameraAPI.Services
                     if (!string.IsNullOrEmpty(FilterType) && (maxPrice.HasValue || minPrice.HasValue))
                     {
                         decimal? price = maxPrice.HasValue ? maxPrice : minPrice;
-                        result = await CheckFilterTypeAsync(result, FilterType, price);
+                        result = (IQueryable<CameraQueryResult>)await CheckFilterTypeAsync(result, FilterType, price);
                     }
                 }
 
@@ -153,36 +242,36 @@ namespace CameraAPI.Services
                     result = result.Where(p => p.Quantity == quantity.Value);
                 }
 
-                var products = result.Select(camera =>
-                {
-                    var category = result.FirstOrDefault(x => x.CameraId == camera.CameraId);
-                    if (category != null)
+                var products = result
+                    .Select(camera => new
                     {
-                        return new CameraResponse
-                        {
-                            CameraName = camera.CameraName,
-                            Brand = camera.Brand,
-                            Price = camera.Price,
-                            Img = camera.Img,
-                            Quantity = camera.Quantity,
-                            CategoryName = category.CategoryName,
-                            Description = camera.Description,
-                            BestSeller = "Đã bán " + camera.Sold
-                        };
-                    }
-                    return null;
-                })
-                .Where(camera => camera != null)
-                 .ToList();
+                        Camera = camera,
+                        Category = result.FirstOrDefault(x => x.CameraId == camera.CameraId)
+                    })
+                    .Where(pair => pair.Category != null)
+                    .Select(pair => new CameraResponse
+                    {
+                        CameraName = pair.Camera.CameraName,
+                        Brand = pair.Camera.Brand,
+                        Price = pair.Camera.Price,
+                        Img = pair.Camera.Img,
+                        Quantity = pair.Camera.Quantity,
+                        CategoryName = pair.Category.CategoryName,
+                        Description = pair.Camera.Description,
+                        BestSeller = "Top " + pair.Camera.Rank + " Seller"
+                    })
+                    .ToList();
+
 
                 return MapCameraResponse(products, pageNumber);
             }
             catch (Exception ex)
             {
-                //_logger.LogInformation(ex.ToString());
+                _logger.LogInformation(ex.ToString());
+                return null;
             }
-            return null;
         }
+
         private async Task<List<CameraQueryResult>> CheckFilterTypeAsync(IEnumerable<CameraQueryResult> products, string filter, decimal? price = null)
         {
             List<CameraQueryResult> filteredProducts = products.ToList();
@@ -202,42 +291,47 @@ namespace CameraAPI.Services
             return filteredProducts;
         }
 
-        public async Task<Camera> GetIdAsync(int cameraId)
+        public async Task<CameraResponseID> GetIdAsync(int cameraId)
         {
             if( cameraId > 0 )
             {
-                var Camera = await _unitOfWork.Cameras.GetById(cameraId);
-                if(Camera != null)
+                var Camera = await _cameraRepository.GetById(cameraId);
+                var category = await _categoryService.GetIdAsync((int)Camera.CategoryId);
+                if (Camera != null)
                 {
-                    return Camera;
+                    var cameraResponse = _autoMapperService.Map<Camera, CameraResponseID>(Camera);
+                    cameraResponse.CategoryName = category.Name;
+                    return cameraResponse;
                 }    
             }
             return null;
         }
 
-        public async Task<bool> Update(Camera camera)
+        public async Task<bool> Update(CameraResponse cameraResponse, string UserID, int id)
         {
-            if(camera != null)
+            if(cameraResponse != null)
             {
-                var cameraDetail = await _unitOfWork.Cameras.GetById(camera.CameraId);
-                if(cameraDetail != null)
+                var cameraDetail = await _unitOfWork.Cameras.GetById(id);
+                var category = await _categoryService.GetIdAsync((int)cameraDetail.CategoryId);
+
+                if (cameraDetail != null)
                 {
-                    cameraDetail.Name = camera.Name;
-                    cameraDetail.Description = camera.Description;
-                    cameraDetail.IsDelete = camera.IsDelete;
-                    cameraDetail.UpdatedDate = camera.UpdatedDate;
-                    cameraDetail.CreatedDate = camera.CreatedDate;
-                    cameraDetail.CreatedBy = camera.CreatedBy;
-                    cameraDetail.UpdatedBy = camera.UpdatedBy;
-                    cameraDetail.Brand = camera.Brand;
-                    cameraDetail.CategoryId = camera.CategoryId;
-                    cameraDetail.Img = camera.Img;
-                    cameraDetail.Price = camera.Price;
-                    cameraDetail.Quantity = camera.Quantity;
+                    cameraDetail.Name = cameraResponse.CameraName;
+                    cameraDetail.Description = cameraResponse.Description;
+                    cameraDetail.IsDelete = false;
+                    cameraDetail.UpdatedDate = DateTime.Now;
+                    cameraDetail.CreatedDate = DateTime.Now;
+                    cameraDetail.CreatedBy = Convert.ToInt16(UserID);
+                    cameraDetail.UpdatedBy = Convert.ToInt16(UserID);
+                    cameraDetail.Brand = cameraResponse.Brand;
+                    cameraDetail.CategoryId = category.CategoryId;
+                    cameraDetail.Img = cameraResponse.Img;
+                    cameraDetail.Price = cameraResponse.Price;
+                    cameraDetail.Quantity = cameraResponse.Quantity;
 
                     _unitOfWork.Cameras.Update(cameraDetail);
                     var result = _unitOfWork.Save();
-                    if(result > 0)
+                    if(result > 0) 
                     {
                         return true;
                     }
@@ -246,7 +340,7 @@ namespace CameraAPI.Services
             return false;
         }
 
-        private List<PaginationCameraResponse> MapCameraResponse(IEnumerable<CameraResponse> cameras, int pageNumber)
+        private List<PaginationCameraResponse> MapCameraResponse(List<CameraResponse> cameras, int pageNumber)
         {
             var cameraList = cameras.ToList();
             var count = cameraList.Count;
@@ -275,25 +369,25 @@ namespace CameraAPI.Services
             }
             catch (Exception ex)
             {
-               // _logger.LogInformation(ex.ToString());
+                _logger.LogInformation(ex.Message, ex);                
+                return null;
             }
-            return null;
         }
 
         public async Task<List<PaginationCameraResponse>> GetFromStoredProcedure(int pageNumber, int? categoryID = null, string? name = null,
-        string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, int? quantity = null)
+        string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null, int? quantity = null)
         {
             try
             {
-                var cameras = await _cameraRepository.GetByStoredProcedure(pageNumber, categoryID, name, brand, minPrice, maxPrice, quantity);
+                var cameras = await _cameraRepository.GetByStoredProcedure(pageNumber, categoryID, name, brand, minPrice, maxPrice, FilterType,quantity);
 
                 return MapCameraResponse(cameras, pageNumber);
             }
             catch (Exception ex)
             {
-                // _logger.LogInformation(ex.ToString());
+                _logger.LogInformation(ex.ToString());
+                return null;
             }
-            return null;
         }
     }
 }

@@ -22,54 +22,66 @@ namespace CameraService.Services
             _distributedCache = distributedCache;
         }
 
-        public string Login(UserModel _userData)
+        public string Login(string username)
         {
-            if (_userData != null)
+            try
             {
-                var resultLoginCheck = _loginRepository.CheckLogin(_userData);
-                if (resultLoginCheck == null)
+                if (username != null)
                 {
-                    return null;
+                    var resultLoginCheck = _loginRepository.CheckLogin(username);
+                    if (resultLoginCheck == null)
+                    {
+                        return null;
+                    }
+                    else
+                    {
+                        var claims = new[] {
+                                    new Claim(JwtRegisteredClaimNames.Sub, _configuration["Jwt:Subject"]),
+                                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                                    new Claim(ClaimTypes.Actor, resultLoginCheck.Username),
+                                    new Claim(ClaimTypes.NameIdentifier, resultLoginCheck.UserId.ToString()),
+                                    new Claim(ClaimTypes.Role, resultLoginCheck.Role),
+                                    new Claim(ClaimTypes.Email, resultLoginCheck.Email),
+                                    new Claim(ClaimTypes.MobilePhone, resultLoginCheck.PhoneNumber)
+                        };
+
+
+                        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+                        var signIn = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+                        var token = new JwtSecurityToken(
+                            _configuration["Jwt:Issuer"],
+                            _configuration["Jwt:Issuer"],
+                            claims,
+                            expires: DateTime.UtcNow.AddDays(7),
+                            signingCredentials: signIn);
+
+
+                        var AccessToken = new JwtSecurityTokenHandler().WriteToken(token);
+
+                        // Lưu trữ token trong phiên (session)
+                        //HttpContext.Session.SetString("Token", _userData.AccessToken);
+                        string cacheKey = "user:token:" + username;
+                        byte[] tokenBytes = Encoding.UTF8.GetBytes(AccessToken);
+
+                        var cacheOptions = new DistributedCacheEntryOptions
+                        {
+                            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
+                        };
+
+                        _distributedCache.SetAsync(cacheKey, tokenBytes, cacheOptions);
+
+
+                        return AccessToken;
+                    }
                 }
                 else
                 {
-                    var claims = new[] {
-                                new Claim(JwtRegisteredClaimNames.Sub, _configuration["Jwt:Subject"]),
-                                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-                            };
-
-
-                    var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
-                    var signIn = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-                    var token = new JwtSecurityToken(
-                        _configuration["Jwt:Issuer"],
-                        _configuration["Jwt:Issuer"],
-                        claims,
-                        expires: DateTime.UtcNow.AddDays(7),
-                        signingCredentials: signIn);
-
-
-                    _userData.AccessToken = new JwtSecurityTokenHandler().WriteToken(token);
-
-                    // Lưu trữ token trong phiên (session)
-                    //HttpContext.Session.SetString("Token", _userData.AccessToken);
-                    string cacheKey = "user:token:" + _userData.Username;
-                    byte[] tokenBytes = Encoding.UTF8.GetBytes(_userData.AccessToken);
-
-                    var cacheOptions = new DistributedCacheEntryOptions
-                    {
-                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
-                    };
-
-                    _distributedCache.SetAsync(cacheKey, tokenBytes, cacheOptions);
-
-
-                    return _userData.AccessToken;
+                    return "Need User Information";
                 }
             }
-            else
+            catch (Exception ex) 
             {
-                return null;
+                return ex.Message;
             }
         }
     }

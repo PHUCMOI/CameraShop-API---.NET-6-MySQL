@@ -1,4 +1,5 @@
 ﻿using CameraAPI.Models;
+using CameraCore.Models;
 
 namespace CameraAPI.Repositories
 {

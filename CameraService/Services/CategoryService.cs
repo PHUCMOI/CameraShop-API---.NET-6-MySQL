@@ -1,24 +1,38 @@
 ﻿using CameraAPI.Models;
 using CameraAPI.Repositories;
+using CameraCore.Models;
 using CameraService.Services.IRepositoryServices;
+using CameraService.Services.IServices;
 
 namespace CameraAPI.Services
 {
     public class CategoryService : ICategoryService
     {
-        public IUnitOfWork _unitOfWork;
+        private IUnitOfWork _unitOfWork;
         private readonly ICategoryRepository _categoryRepository;
-        public CategoryService(IUnitOfWork unitOfWork, ICategoryRepository categoryRepository)
+        private readonly IAutoMapperService _autoMapperService;
+        public CategoryService(IUnitOfWork unitOfWork, ICategoryRepository categoryRepository, IAutoMapperService autoMapperService)
         {
             _unitOfWork = unitOfWork;
             _categoryRepository = categoryRepository;
+            _autoMapperService = autoMapperService;
         }
 
-        public async Task<bool> Create(Category category)
+        public async Task<bool> Create(CategoryRequest categoryRequest, string userID)
         {
-            if (category != null)
+            if (categoryRequest != null)
             {
-                await _unitOfWork.Categories.Create(category);
+                var category = new Category()
+                {
+                    Name = categoryRequest.Name,
+                    UpdatedBy = Convert.ToInt16(userID),
+                    UpdatedDate = DateTime.Now,
+                    CreatedBy = Convert.ToInt16(userID),
+                    CreatedDate = DateTime.Now,
+                    IsDelete = false
+                };
+
+                await _categoryRepository.Create(category);
 
                 //Lưu xuống db 
                 var result = _unitOfWork.Save();
@@ -31,14 +45,14 @@ namespace CameraAPI.Services
             return false;
         }
 
-        public async Task<bool> DeleteAsync(int categoryID)
+        public async Task<bool> DeleteAsync(int CagetoryID)
         {
-            if (categoryID > 0)
+            if (CagetoryID > 0)
             {
-                var category = await _unitOfWork.Categories.GetById(categoryID);
-                if (category != null)
+                var Cagetory = await _categoryRepository.GetById(CagetoryID);
+                if (Cagetory != null)
                 {
-                    _unitOfWork.Categories.Delete(category);
+                    _categoryRepository.Delete(Cagetory);
                     var result = _unitOfWork.Save();
                     if (result > 0) return true;
                 }
@@ -46,41 +60,44 @@ namespace CameraAPI.Services
             return false;
         }
 
-        public async Task<IEnumerable<Category>> GetAllCategory()
+        public async Task<IEnumerable<CategoryResponse>> GetAllCategory()
         {
-            var CategoryList = await _categoryRepository.GetAll();
-            return CategoryList;
+            var categoryList = await _categoryRepository.GetAll();
+            var categoryResponseList = _autoMapperService.MapList<Category, CategoryResponse>(categoryList);
+            return categoryResponseList;
         }
 
-        public async Task<Category> GetIdAsync(int categoryID)
+        public async Task<CategoryResponse> GetIdAsync(int categoryID)
         {
             if (categoryID > 0)
             {
                 var Category = await _categoryRepository.GetById(categoryID);
+                var categoryResponse = _autoMapperService.Map<Category, CategoryResponse>(Category);
+
                 if (Category != null)
                 {
-                    return Category;
+                    return categoryResponse;
                 }
             }
             return null;
         }
 
-        public async Task<bool> Update(Category Category)
+        public async Task<bool> Update(CategoryResponse categoryResponse, string UserID, int id)
         {
-            if (Category != null)
+            if (categoryResponse != null)
             {
-                var CategoryDetail = await _unitOfWork.Categories.GetById(Category.CategoryId);
+                var CategoryDetail = await _categoryRepository.GetById(id);
                 if (CategoryDetail != null)
                 {
-                    CategoryDetail.Name = Category.Name;
-                    CategoryDetail.IsDelete = Category.IsDelete;
-                    CategoryDetail.UpdatedDate = Category.UpdatedDate;
-                    CategoryDetail.CreatedDate = Category.CreatedDate;
-                    CategoryDetail.CreatedBy = Category.CreatedBy;
-                    CategoryDetail.UpdatedBy = Category.UpdatedBy;
-                    CategoryDetail.CategoryId = Category.CategoryId;
+                    CategoryDetail.Name = CategoryDetail.Name;
+                    CategoryDetail.IsDelete = false;
+                    CategoryDetail.UpdatedDate = DateTime.Now;
+                    CategoryDetail.CreatedDate = DateTime.Now;
+                    CategoryDetail.CreatedBy = Convert.ToInt16(UserID);
+                    CategoryDetail.UpdatedBy = Convert.ToInt16(UserID);
+                    CategoryDetail.CategoryId = CategoryDetail.CategoryId;
 
-                    _unitOfWork.Categories.Update(CategoryDetail);
+                    _categoryRepository.Update(CategoryDetail);
                     var result = _unitOfWork.Save();
                     if (result > 0)
                     {
