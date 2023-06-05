@@ -22,7 +22,7 @@ namespace CameraService.Services
             _unitOfWork = unitOfWork;
             _autoMapperService = autoMapperService;
         }
-        public async Task<bool> Create(OrderRequest orderRequest, string UserID)
+        public async Task<bool> Create(OrderRequest orderRequest, CameraResponse camera, string UserID, decimal Quantity)
         {
             if (orderRequest != null)
             {
@@ -41,7 +41,21 @@ namespace CameraService.Services
                     UpdatedDate = DateTime.Now,
                     IsDelete = false
                 };
-                await _unitOfWork.Orders.Create(order);
+                await _orderRepository.Create(order);
+
+                var orderdetail = new OrderDetail()
+                {
+                    OrderId = order.OrderId,
+                    CameraId = camera.CameraID,
+                    Quantity = Quantity,
+                    Status = "Prepare",
+                    CreatedBy = Convert.ToInt32(UserID),
+                    CreatedDate = DateTime.Now,
+                    UpdatedBy = Convert.ToInt32(UserID),
+                    UpdatedDate = DateTime.Now,
+                    IsDelete = false
+                };
+                await _unitOfWork.OrderDetails.Create(orderdetail);
 
                 // Lưu xuống db 
                 var result = _unitOfWork.Save();
@@ -126,14 +140,12 @@ namespace CameraService.Services
                             .Where(c => c.CameraId == p.CameraId)
                             .Select(c => new Camera1
                             {
-                                CameraId = c.CameraId,
                                 Name = c.Name,
                                 CategoryId = c.CategoryId,
                                 Brand = c.Brand,
                                 Description = c.Description,
                                 Price = c.Price,
-                                Img = c.Img,
-                                Quantity = c.Quantity
+                                Img = c.Img
                             })
                             .FirstOrDefault()
                     })

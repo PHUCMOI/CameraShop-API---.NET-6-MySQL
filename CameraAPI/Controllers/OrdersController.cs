@@ -123,11 +123,21 @@ namespace CameraAPI.Controllers
         // POST: api/Orders
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Order>> PostOrder(OrderRequest order)
+        public async Task<ActionResult<OrderRequestPayPal>> PostOrder(CameraResponse camera, string Address, string Payment, decimal Quantity, string? Message = null)
         {
             var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
             var nameIdentifierValue = userIdentity.Claims.ToList();
-            var orderDetail = await _orderService.Create(order, nameIdentifierValue[3].Value);
+            var order = new OrderRequest()
+            {
+                UserId = Convert.ToInt16(nameIdentifierValue[3].Value),
+                Username = nameIdentifierValue[2].Value,
+                Address = Address,
+                Payment = Payment,
+                Status = "Prepare",
+                Price = 0,
+                Message = Message
+            };
+            var orderDetail = await _orderService.Create(order, camera, nameIdentifierValue[3].Value, Quantity);
             if (orderDetail)
             {
                 return Ok(orderDetail);

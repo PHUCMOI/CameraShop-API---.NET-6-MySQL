@@ -2,6 +2,7 @@
 {
     public class CameraResponse
     {
+        public int CameraID { get; set; }
         public string CameraName { get; set; }
         public string Brand { get; set; }
         public decimal? Price { get; set; }
@@ -14,6 +15,7 @@
 
     public class CameraResponseID
     {
+        public int CameraID { get; set; }
         public string CameraName { get; set; }
         public string Brand { get; set; }
         public decimal? Price { get; set; }
