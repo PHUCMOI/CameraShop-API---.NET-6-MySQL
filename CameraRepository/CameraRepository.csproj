@@ -22,11 +22,6 @@
 	<PackageReference Include="Moq" Version="4.18.4" />   
 	<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.29.0" />
   </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\CameraCore\CameraCore.csproj" />
-    <ProjectReference Include="..\CameraService\CameraService.csproj" />
-  </ItemGroup>
 	<ItemGroup>
     <PackageReference Include="Dapper" Version="2.0.123" />
     <PackageReference Include="Dapper.EntityFramework" Version="2.0.90" />
@@ -43,5 +38,8 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="7.0.5" />
 		<PackageReference Include="PayPal" Version="2.0.0-rc2" />
 
+	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\CameraCore\CameraCore.csproj" />
 	</ItemGroup>
 </Project>

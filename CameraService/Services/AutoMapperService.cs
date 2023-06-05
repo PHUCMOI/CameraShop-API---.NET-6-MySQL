@@ -20,6 +20,7 @@ namespace CameraService.Services
                 cfg.AddProfile(new CameraMappingProfile());
                 cfg.AddProfile(new CameraIDMappingProfile());
                 cfg.AddProfile(new OrderMappingProfile());
+                cfg.AddProfile(new UserMappingProfile());
             });
 
             _mapper = config.CreateMapper();
@@ -67,6 +68,14 @@ namespace CameraService.Services
             public OrderMappingProfile()
             {
                 CreateMap<Order, OrderResponse>();
+            }
+        }
+
+        public class UserMappingProfile : Profile
+        {
+            public UserMappingProfile()
+            {
+                CreateMap<User, UserResponse>();
             }
         }
     }

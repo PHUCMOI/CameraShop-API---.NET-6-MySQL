@@ -1,5 +1,5 @@
 ﻿using CameraAPI.Models;
-using CameraAPI.Services;
+using CameraService.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;

@@ -5,10 +5,9 @@ namespace CameraService.Services.IRepositoryServices
 {
     public interface IOrderService 
     {
-        Task<OrderRequestPayPal> GetRandomOrder();
-        Task<IEnumerable<OrderResponse>> GetAllOrder();
+        Task<IEnumerable<OrderRequestPayPal>> GetAllOrder();
         Task<Order> GetIdAsync(int OrderID);
-        Task<bool> Create(OrderRequest order, CameraResponse camera, string UserID, decimal Quantity);
+        Task<OrderResponsePayPal> Create(OrderRequest order, List<CameraResponse> camera, string userID, decimal? delivery = null, decimal? coupon = null);
         Task<bool> Update(Order order);
         Task<bool> DeleteAsync(int OrderID);
     }

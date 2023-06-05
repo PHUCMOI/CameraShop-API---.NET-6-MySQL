@@ -1,7 +1,6 @@
 ﻿using CameraAPI.AppModel;
 using CameraAPI.Models;
 using Dapper;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using PayPal.v1.Sync;

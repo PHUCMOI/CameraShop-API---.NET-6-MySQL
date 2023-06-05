@@ -21,20 +21,9 @@ namespace CameraAPI.Controllers
             _orderService = orderService;
         }
 
-        [HttpGet("random")]
-        public async Task<ActionResult<OrderRequestPayPal>> GetRandomOrder()
-        {
-            var order = await _orderService.GetRandomOrder();
-            if (order == null)
-            {
-                return NotFound();
-            }
-            return Ok(order);
-        }
-
         // GET: api/Orders
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<OrderResponse>>> GetOrders()
+        public async Task<ActionResult<IEnumerable<OrderRequestPayPal>>> GetOrders()
         {
             var orderList = await _orderService.GetAllOrder();
             if (orderList == null)
@@ -93,7 +82,7 @@ namespace CameraAPI.Controllers
 
                 if (orderRequest != null) 
                 {
-                    orderRequest.Price = orderRequest.Price + orderRequest.Price * 10 / 100;
+                    orderRequest.Price = orderRequest.Price + orderRequest.Price * 10 / 100; // Tax = 10%
                     orderRequest.Price = (decimal)(orderRequest.Price + Delivery - Coupon);
 
                     var payment = await _paypalService.CreatePaymentUrl(orderRequest);
@@ -123,7 +112,7 @@ namespace CameraAPI.Controllers
         // POST: api/Orders
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<OrderRequestPayPal>> PostOrder(CameraResponse camera, string Address, string Payment, decimal Quantity, string? Message = null)
+        public async Task<ActionResult<OrderResponsePayPal>> PostOrder(List<CameraResponse> camera, string address, string payment, string? message = null, decimal? delivery = null, decimal? coupon = null)
         {
             var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
             var nameIdentifierValue = userIdentity.Claims.ToList();
@@ -131,14 +120,14 @@ namespace CameraAPI.Controllers
             {
                 UserId = Convert.ToInt16(nameIdentifierValue[3].Value),
                 Username = nameIdentifierValue[2].Value,
-                Address = Address,
-                Payment = Payment,
+                Address = address,
+                Payment = payment,
                 Status = "Prepare",
                 Price = 0,
-                Message = Message
+                Message = message
             };
-            var orderDetail = await _orderService.Create(order, camera, nameIdentifierValue[3].Value, Quantity);
-            if (orderDetail)
+            var orderDetail = await _orderService.Create(order, camera, nameIdentifierValue[3].Value, delivery, coupon);
+            if (orderDetail != null)
             {
                 return Ok(orderDetail);
             }

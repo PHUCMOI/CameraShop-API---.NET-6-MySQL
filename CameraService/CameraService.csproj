@@ -33,6 +33,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CameraCore\CameraCore.csproj" />
+    <ProjectReference Include="..\CameraRepository\CameraRepository.csproj" />
   </ItemGroup>
 
 </Project>

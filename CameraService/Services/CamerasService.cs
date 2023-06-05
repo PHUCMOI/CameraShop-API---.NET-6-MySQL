@@ -11,7 +11,7 @@ using PayPal.v1.Orders;
 
 namespace CameraAPI.Services
 {
-    public class CameraService : ICameraService
+    public class CamerasService : ICameraService
     {
         private IUnitOfWork _unitOfWork;
         private readonly ICameraRepository _cameraRepository;
@@ -22,10 +22,10 @@ namespace CameraAPI.Services
 
         private readonly IAutoMapperService _autoMapperService;
 
-        private ILogger<CameraService> _logger;
+        private ILogger<CamerasService> _logger;
 
-        public CameraService(IUnitOfWork unitOfWork, ICategoryService categoryService, IWarehouseCameraService warehouseCameraService,
-            IWarehouseCategoryService warehouseCategoryService, ICameraRepository cameraRepository, ILogger<CameraService> logger,
+        public CamerasService(IUnitOfWork unitOfWork, ICategoryService categoryService, IWarehouseCameraService warehouseCameraService,
+            IWarehouseCategoryService warehouseCategoryService, ICameraRepository cameraRepository, ILogger<CamerasService> logger,
             IAutoMapperService autoMapperService) 
         {
             _unitOfWork = unitOfWork;

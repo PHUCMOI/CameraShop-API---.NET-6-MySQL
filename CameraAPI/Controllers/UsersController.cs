@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using CameraAPI.Models;
 using Microsoft.AspNetCore.Authorization;
+using CameraAPI.Repositories;
 
 namespace CameraAPI.Controllers
 {
@@ -10,10 +11,11 @@ namespace CameraAPI.Controllers
     public class UsersController : ControllerBase
     {
         private readonly Models.CameraAPIdbContext _context;
-
-        public UsersController(Models.CameraAPIdbContext context)
+        private readonly IUnitOfWork _unitOfWork;
+        public UsersController(Models.CameraAPIdbContext context, IUnitOfWork unitOfWork)
         {
             _context = context;
+            _unitOfWork = unitOfWork;
         }
 
         // GET: api/Users
@@ -24,7 +26,7 @@ namespace CameraAPI.Controllers
           {
               return NotFound();
           }
-            return await _context.Users.ToListAsync();
+            return await _unitOfWork.Users.GetAll();
         }
 
         // GET: api/Users/5
@@ -35,7 +37,7 @@ namespace CameraAPI.Controllers
           {
               return NotFound();
           }
-            var user = await _context.Users.FindAsync(id);
+            var user = await _unitOfWork.Users.GetById(id);
 
             if (user == null)
             {
