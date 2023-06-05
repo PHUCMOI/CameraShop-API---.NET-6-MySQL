@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using CameraService.Services.IRepositoryServices;
 using CameraAPI.AppModel;
 using CameraCore.Models;
+using System.Security.Claims;
 
 namespace CameraAPI.Controllers
 {
@@ -13,17 +14,15 @@ namespace CameraAPI.Controllers
     {
         private readonly IOrderService _orderService;
         private readonly IPayPalService _paypalService;
-        private readonly ILogger<OrdersController> _logger;
 
-        public OrdersController(Models.CameraAPIdbContext context, IPayPalService paypalService, ILogger<OrdersController> logger, IOrderService orderService)   
+        public OrdersController(IPayPalService paypalService, IOrderService orderService)   
         {
             _paypalService = paypalService;
-            _logger = logger;
             _orderService = orderService;
         }
 
         [HttpGet("random")]
-        public async Task<ActionResult<OrderRequest>> GetRandomOrder()
+        public async Task<ActionResult<OrderRequestPayPal>> GetRandomOrder()
         {
             var order = await _orderService.GetRandomOrder();
             if (order == null)
@@ -35,7 +34,7 @@ namespace CameraAPI.Controllers
 
         // GET: api/Orders
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Order>>> GetOrders()
+        public async Task<ActionResult<IEnumerable<OrderResponse>>> GetOrders()
         {
             var orderList = await _orderService.GetAllOrder();
             if (orderList == null)
@@ -77,52 +76,68 @@ namespace CameraAPI.Controllers
             catch (Exception ex)
             {
 
-                return BadRequest();
+                return BadRequest(ex.Message);
             }
         }
 
         [HttpPost("paypal")]
-        public async Task<ActionResult<OrderResponse>> PostOrderPayPal(PaymentInformationModel orderRequest, decimal? Delivery = null, decimal? Coupon = null)
+        public async Task<ActionResult<OrderResponsePayPal>> PostOrderPayPal(PaymentInformationModel orderRequest, decimal? Delivery = null, decimal? Coupon = null)
         {
-            if (!Delivery.HasValue)
-                Delivery = 0;
+            try
+            {                
+                if (!Delivery.HasValue)
+                    Delivery = 0;
 
-            if (!Coupon.HasValue)
-                Coupon = 0;
+                if (!Coupon.HasValue)
+                    Coupon = 0;
 
-            orderRequest.Price = orderRequest.Price * 10;
-            orderRequest.Price /= 100;
-            orderRequest.Price = (decimal)(orderRequest.Price + Delivery - Coupon);
+                if (orderRequest != null) 
+                {
+                    orderRequest.Price = orderRequest.Price + orderRequest.Price * 10 / 100;
+                    orderRequest.Price = (decimal)(orderRequest.Price + Delivery - Coupon);
 
-            var payment = await _paypalService.CreatePaymentUrl(orderRequest);
+                    var payment = await _paypalService.CreatePaymentUrl(orderRequest);
 
-            _logger.LogInformation("Price: ", orderRequest.Price.ToString());
+                    var response = new OrderResponsePayPal
+                    {
+                        requestID = orderRequest.OrderId,
+                        orderID = orderRequest.OrderId,
+                        price = orderRequest.Price.ToString(),
+                        responseTime = DateTime.Now,
+                        payUrl = payment.url,
+                        errorCode = payment.errorCode,
+                        statusCode = payment.statusCode,
+                        orderStatus = payment.Message
+                    };
 
-            var response = new OrderResponse
+                    return new ActionResult<OrderResponsePayPal>(response);
+                }
+                return BadRequest();
+            }
+            catch (Exception ex) 
             {
-                requestID = orderRequest.OrderId,
-                orderID = orderRequest.OrderId,
-                price = orderRequest.Price.ToString(),
-                responseTime = DateTime.Now,
-                payUrl = payment.url,
-                errorCode = payment.errorCode,
-                statusCode = payment.statusCode,
-                orderStatus = payment.Message
-            };
-            _logger.LogCritical("Created Payment.");
-            _logger.LogError("error.");
-            _logger.LogWarning("Warning.");
-            _logger.LogTrace("Trace");
-
-            return Ok(response);
+                return BadRequest(ex.Message);
+            }
         }
 
         // POST: api/Orders
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Order>> PostOrder(Order order)
+        public async Task<ActionResult<OrderRequestPayPal>> PostOrder(CameraResponse camera, string Address, string Payment, decimal Quantity, string? Message = null)
         {
-            var orderDetail = await _orderService.Create(order);
+            var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
+            var nameIdentifierValue = userIdentity.Claims.ToList();
+            var order = new OrderRequest()
+            {
+                UserId = Convert.ToInt16(nameIdentifierValue[3].Value),
+                Username = nameIdentifierValue[2].Value,
+                Address = Address,
+                Payment = Payment,
+                Status = "Prepare",
+                Price = 0,
+                Message = Message
+            };
+            var orderDetail = await _orderService.Create(order, camera, nameIdentifierValue[3].Value, Quantity);
             if (orderDetail)
             {
                 return Ok(orderDetail);

@@ -3,29 +3,61 @@ using CameraAPI.Models;
 using CameraAPI.Repositories;
 using CameraAPI.Services.Interfaces;
 using CameraService.Services.IRepositoryServices;
+using CameraService.Services.IServices;
 
 namespace CameraService.Services
 {
     public class OrderService : IOrderService
     {
         private readonly IOrderDetailService _orderDetailService;
-        private readonly ICameraService _camService;
+        private readonly ICameraRepository _camRepository;
         private readonly IOrderRepository _orderRepository;
         private readonly IUnitOfWork _unitOfWork;
-        public OrderService(IOrderRepository orderRepository, IOrderDetailService orderDetailService, ICameraService cameraService, IUnitOfWork unitOfWork)
+        private readonly IAutoMapperService _autoMapperService;
+        public OrderService(IOrderRepository orderRepository, IOrderDetailService orderDetailService, ICameraRepository camRepository, IUnitOfWork unitOfWork, IAutoMapperService autoMapperService)
         {
             _orderRepository = orderRepository;
-            _camService = cameraService;
+            _camRepository = camRepository;
             _orderDetailService = orderDetailService;
             _unitOfWork = unitOfWork;
+            _autoMapperService = autoMapperService;
         }
-        public async Task<bool> Create(Order order)
+        public async Task<bool> Create(OrderRequest orderRequest, CameraResponse camera, string UserID, decimal Quantity)
         {
-            if (order != null)
+            if (orderRequest != null)
             {
-                await _unitOfWork.Orders.Create(order);
+                var order = new Order()
+                {
+                    UserId = Convert.ToInt32(UserID),
+                    Username = orderRequest.Username,
+                    Address = orderRequest.Address,
+                    Payment = orderRequest.Payment,
+                    Status = orderRequest.Status,
+                    Price = orderRequest.Price,
+                    Message = orderRequest.Message,
+                    CreatedBy = Convert.ToInt32(UserID),
+                    CreatedDate = DateTime.Now,
+                    UpdatedBy = Convert.ToInt32(UserID),
+                    UpdatedDate = DateTime.Now,
+                    IsDelete = false
+                };
+                await _orderRepository.Create(order);
 
-                //Lưu xuống db 
+                var orderdetail = new OrderDetail()
+                {
+                    OrderId = order.OrderId,
+                    CameraId = camera.CameraID,
+                    Quantity = Quantity,
+                    Status = "Prepare",
+                    CreatedBy = Convert.ToInt32(UserID),
+                    CreatedDate = DateTime.Now,
+                    UpdatedBy = Convert.ToInt32(UserID),
+                    UpdatedDate = DateTime.Now,
+                    IsDelete = false
+                };
+                await _unitOfWork.OrderDetails.Create(orderdetail);
+
+                // Lưu xuống db 
                 var result = _unitOfWork.Save();
 
                 if (result > 0)
@@ -51,10 +83,11 @@ namespace CameraService.Services
             return false;
         }
 
-        public async Task<IEnumerable<Order>> GetAllOrder()
+        public async Task<IEnumerable<OrderResponse>> GetAllOrder()
         {
             var OrderlList = await _orderRepository.GetAll();
-            return OrderlList;
+            var OrderListResponse = _autoMapperService.MapList<Order, OrderResponse>(OrderlList);
+            return OrderListResponse;
         }
 
         public async Task<Order> GetIdAsync(int OrderID)
@@ -70,11 +103,11 @@ namespace CameraService.Services
             return null;
         }
 
-        public async Task<OrderRequest> GetRandomOrder()
+        public async Task<OrderRequestPayPal> GetRandomOrder()
         {
             var orderList = await _orderRepository.GetAll();
             var orderDetailList = await _orderDetailService.GetAllOrderDetail();
-            var cameraList = await _camService.GetAllCamera();
+            var cameraList = await _camRepository.GetAll();
 
             var randomIndex = new Random().Next(0, orderList.Count());
             var randomOrder = orderList.ElementAt(randomIndex);
@@ -85,7 +118,7 @@ namespace CameraService.Services
                 return (camera != null && od.OrderId == randomOrder.OrderId) ? od.Quantity * camera.Price : 0;
             });
 
-            var orderDetail = new OrderRequest
+            var orderDetail = new OrderRequestPayPal
             {
                 OrderId = randomIndex,
                 UserId = randomOrder.UserId,
@@ -107,14 +140,12 @@ namespace CameraService.Services
                             .Where(c => c.CameraId == p.CameraId)
                             .Select(c => new Camera1
                             {
-                                CameraId = c.CameraId,
                                 Name = c.Name,
                                 CategoryId = c.CategoryId,
                                 Brand = c.Brand,
                                 Description = c.Description,
                                 Price = c.Price,
-                                Img = c.Img,
-                                Quantity = c.Quantity
+                                Img = c.Img
                             })
                             .FirstOrDefault()
                     })

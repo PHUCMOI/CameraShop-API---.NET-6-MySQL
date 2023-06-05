@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using CameraAPI;
+using CameraCore.Models;
 
 namespace CameraAPI.Models
 {

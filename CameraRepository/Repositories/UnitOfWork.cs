@@ -16,7 +16,8 @@ namespace CameraAPI.Repositories
         public IWarehouseCategoryRepository WarehouseCategory { get; }
 
         public UnitOfWork(CameraAPIdbContext context, WarehouseDbContext warehouseDbContext,
-            ICameraRepository cameraRepository, ICategoryRepository categoryRepository, IOrderDetailsRepository orderDetailsRepository)
+            ICameraRepository cameraRepository,
+            IOrderDetailsRepository orderDetailsRepository)
         {
             _context = context;
             _warehouseDbContext = warehouseDbContext;

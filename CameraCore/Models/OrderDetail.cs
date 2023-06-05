@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using CameraAPI;
+using Microsoft.EntityFrameworkCore;
 
 namespace CameraAPI.Models
 {
@@ -17,6 +18,5 @@ namespace CameraAPI.Models
         public int? UpdatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
         public bool? IsDelete { get; set; }
-        public Camera Camera { get; set; }
     }
 }

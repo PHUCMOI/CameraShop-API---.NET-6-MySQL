@@ -27,7 +27,7 @@ namespace CameraAPI.Repositories
         {
             if (categoryID != null)
             {
-                query += " AND c.CategoryID LIKE '%' + @CategoryID + '%'";
+                query += " AND c.CategoryID = @CategoryID ";
             }
             if (name != null)
             {
@@ -57,52 +57,71 @@ namespace CameraAPI.Repositories
 
         public async Task<List<CameraResponse>> GetBySQL(int pageNumber, int? categoryID = null, string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null, int? quantity = null)
         {
-            using (SqlConnection connection = new SqlConnection(_configuration.GetConnectionString("InternShop")))
+            try
             {
-                await connection.OpenAsync();
-
-                // Query là câu lệnh trả về gồm danh sách các camera, category name của camera,
-                // và xếp hạng theo số lượng đã được bán
-                string query = @"SELECT *, cat.Name AS CategoryName,    
-                DENSE_RANK() OVER (ORDER BY c.Sold DESC) AS Rank
-                FROM (
-                    SELECT * FROM shop.camera
-                    UNION
-                    SELECT * FROM [Warehouse].[warehouse].[Camera]
-                ) AS c
-                JOIN Category cat ON c.CategoryId = cat.CategoryId
-                WHERE 1=1";
-
-                query += CalculateSQLString(query, categoryID, name, brand, minPrice, maxPrice, FilterType, quantity);
-                decimal? price = maxPrice.HasValue ? maxPrice : minPrice;
-
-                var parameters = new
+                using (SqlConnection connection = new SqlConnection(_configuration.GetConnectionString("InternShop")))
                 {
-                    CategoryID = categoryID,
-                    Name = name,
-                    Brand = brand,
-                    MinPrice = minPrice,
-                    MaxPrice = maxPrice,
-                    Price = price,
-                    Quantity = quantity
-                };
+                    await connection.OpenAsync();
 
-                // Dapper để truy xuất dữ liệu và ánh xạ vào CameraResponse
-                var cameras = await connection.QueryAsync<CameraResponse, string, long, CameraResponse>(
-                    query,
-                    (camera, categoryName, rank) => {
-                        camera.CategoryName = categoryName;
-                        camera.BestSeller = "Top " + rank.ToString() + " seller";
-                        return camera;
-                    },
-                    parameters,
-                    splitOn: "CategoryName,Rank"); // Phân tách kết quả
+                    // câu lệnh trả về gồm danh sách các camera, category name của camera,
+                    // và xếp hạng theo số lượng đã được bán
+                    string query = @"SELECT *, c.Name AS CameraName, cat.Name AS CategoryName,    
+                                DENSE_RANK() OVER (ORDER BY c.Sold DESC) AS Rank
+                                FROM (
+                                    SELECT * FROM shop.camera
+                                    UNION
+                                    SELECT * FROM [Warehouse].[warehouse].[Camera]
+                                ) AS c
+                                JOIN Category cat ON c.CategoryId = cat.CategoryId
+                                WHERE 1=1";
 
-                return cameras.ToList();
+                    query = CalculateSQLString(query, categoryID, name, brand, minPrice, maxPrice, FilterType, quantity);
+
+                    decimal? price = maxPrice.HasValue ? maxPrice : minPrice;
+
+                    var parameters = new
+                    {
+                        CategoryID = categoryID,
+                        Name = name,
+                        Brand = brand,
+                        MinPrice = minPrice,
+                        MaxPrice = maxPrice,
+                        Price = price,
+                        Quantity = quantity
+                    };
+
+                    // Dapper để truy xuất dữ liệu và ánh xạ vào CameraResponse
+                    var cameras = await connection.QueryAsync<CameraResponse, string, long, CameraResponse>(
+                        query,
+                        (camera, categoryName, rank) =>
+                        {
+                            var cameraResponse = new CameraResponse
+                            {
+                                CameraName = camera.CameraName,
+                                Brand = camera.Brand,
+                                Price = camera.Price,
+                                Img = camera.Img,
+                                Quantity = camera.Quantity,
+                                CategoryName = categoryName,
+                                Description = camera.Description,
+                                BestSeller = "Top " + rank.ToString() + " seller"
+                            };
+                            return cameraResponse;
+                        },
+                        parameters,
+                        splitOn: "CategoryName,Rank"
+                    );
+
+                    return cameras.ToList();
+                }                
+            }
+            catch (Exception ex)
+            {
+                return null;
             }
         }
 
-        public async Task<List<CameraResponse>> GetByStoredProcedure(int pageNumber, int? categoryID = null, string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, int? quantity = null)
+        public async Task<List<CameraResponse>> GetByStoredProcedure(int pageNumber, int? categoryID = null, string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null, int? quantity = null)
         {
             try
             {
@@ -118,6 +137,7 @@ namespace CameraAPI.Repositories
                     command.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@minPrice", minPrice ?? (object)DBNull.Value));
                     command.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@maxPrice", maxPrice ?? (object)DBNull.Value));
                     command.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@quantity", quantity ?? (object)DBNull.Value));
+                    command.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@Filter", FilterType ?? (object)DBNull.Value));
 
                     await _context.Database.OpenConnectionAsync();
                     using (var result = await command.ExecuteReaderAsync())
@@ -135,7 +155,7 @@ namespace CameraAPI.Repositories
                                 Quantity = result.GetInt32(result.GetOrdinal("Quantity")),
                                 Description = result.GetString(result.GetOrdinal("Description")),
                                 CategoryName = result.GetString(result.GetOrdinal("CategoryName")),
-                                BestSeller = result.GetInt32(result.GetOrdinal("Sold")).ToString()
+                                BestSeller = "Top " + result.GetInt64(result.GetOrdinal("SoldRank")).ToString() + " Seller"
                             });
                         }
 
@@ -145,9 +165,8 @@ namespace CameraAPI.Repositories
             }
             catch (Exception ex)
             {
-                // Handle exceptions if needed
+                return null;
             }
-            return null;
         }
 
     }

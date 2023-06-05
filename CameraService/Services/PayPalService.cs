@@ -10,7 +10,6 @@ namespace CameraService.Services
     public class PayPalService : IPayPalService
     {
         private readonly IConfiguration _configuration;
-        private const double ExchangeRate = 22_863.0;
         public PayPalService(IConfiguration configuration)
         {
             _configuration = configuration;
@@ -84,8 +83,7 @@ namespace CameraService.Services
 
         public async Task<PayPalPayment> ExecutePaymentAsync(Payment payment)
         {
-            var envSandbox =
-                new SandboxEnvironment(_configuration["Paypal:ClientId"], _configuration["Paypal:SecretKey"]);
+            var envSandbox = new SandboxEnvironment(_configuration["Paypal:ClientId"], _configuration["Paypal:SecretKey"]);
             var client = new PayPalHttpClient(envSandbox);
 
             var request = new PaymentCreateRequest();

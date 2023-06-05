@@ -16,11 +16,18 @@ namespace CameraAPI.Controllers
 
         [HttpPost]
         [Route("PostLoginDetails")]
-        public async Task<IActionResult> PostLoginDetails(UserModel UserData)
+        public async Task<IActionResult> PostLoginDetails(string Username)
         {
-            string accessToken = _loginService.Login(UserData);
+            try
+            {
+                string accessToken = _loginService.Login(Username);
 
-            return accessToken == null ? NotFound() : Ok(accessToken);
+                return accessToken == null ? NotFound() : Ok(accessToken);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }

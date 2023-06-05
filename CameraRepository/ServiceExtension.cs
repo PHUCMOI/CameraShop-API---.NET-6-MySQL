@@ -16,26 +16,26 @@ namespace CameraAPI.Services
         {
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-            services.AddScoped<ICameraRepository, CamerasRepository>();
-            services.AddScoped<ICameraService, CameraService>();
+            services.AddTransient<ICameraRepository, CamerasRepository>();
+            services.AddTransient<ICameraService, CameraService>();
 
-            services.AddScoped<ICategoryRepository, CategoryRepository>();
-            services.AddScoped<ICategoryService, CategoryService>();
+            services.AddTransient<ICategoryRepository, CategoryRepository>();
+            services.AddTransient<ICategoryService, CategoryService>();
 
-            services.AddScoped<IOrderDetailService, OrderDetailService>();
-            services.AddScoped<IOrderDetailsRepository, OrderDetailRepository>();
+            services.AddTransient<IOrderDetailService, OrderDetailService>();
+            services.AddTransient<IOrderDetailsRepository, OrderDetailRepository>();
 
-            services.AddScoped<IOrderService, OrderService>();
-            services.AddScoped<IOrderRepository, OrderRepository>();
+            services.AddTransient<IOrderService, OrderService>();
+            services.AddTransient<IOrderRepository, OrderRepository>();
 
-            services.AddScoped<ILoginRepository, LoginRepository>();
-            services.AddScoped<ILoginService, LoginService>();
+            services.AddTransient<ILoginRepository, LoginRepository>();
+            services.AddTransient<ILoginService, LoginService>();
 
-            services.AddScoped<IWarehouseCameraService, WarehouseCameraService>();
-            services.AddScoped<IWarehouseCameraRepository, WarehouseCameraRepository>();
+            services.AddTransient<IWarehouseCameraService, WarehouseCameraService>();
+            services.AddTransient<IWarehouseCameraRepository, WarehouseCameraRepository>();
 
-            services.AddScoped<IWarehouseCategoryService, WarehouseCategoryService>();
-            services.AddScoped<IWarehouseCategoryRepository, WarehouseCategoryRepository>();
+            services.AddTransient<IWarehouseCategoryService, WarehouseCategoryService>();
+            services.AddTransient<IWarehouseCategoryRepository, WarehouseCategoryRepository>();
 
             services.AddSingleton<IRedisCacheService, RedisCacheService>();
             services.AddStackExchangeRedisCache(options =>
@@ -43,9 +43,10 @@ namespace CameraAPI.Services
                 options.Configuration = "localhost:6379";
             });
 
-            services.AddScoped<IPayPalService, PayPalService>();
+            services.AddTransient<IPayPalService, PayPalService>();
 
             services.AddLogging();
+            services.AddSingleton<IAutoMapperService, AutoMapperService>();
 
             return services;
         }

@@ -12,5 +12,6 @@
         public int Quantity { get; set; }
         public string Img { get; set; }
         public string Description { get; set; }
+        public int Rank { get; set; }
     }
 }

@@ -18,11 +18,10 @@ namespace CameraRepository.Repositories
             _context = context;
         }
 
-        public UserModel CheckLogin(UserModel _userData)
+        public UserModel CheckLogin(string name)
         {
             var resultLoginCheck = _context.Users
-                    .Where(e => e.Username == _userData.Username
-                            && e.Password == _userData.Password)
+                    .Where(e => e.Username == name)
                     .FirstOrDefault();
 
             if(resultLoginCheck != null)
@@ -30,8 +29,11 @@ namespace CameraRepository.Repositories
                 var resultUser = new UserModel()
                 {
                     Username = resultLoginCheck.Username,
-                    Password = resultLoginCheck.Password,
-                    AccessToken = null
+                    UserId = resultLoginCheck.UserId,
+                    Role = resultLoginCheck.Role,
+                    Email = resultLoginCheck.Email,
+                    PhoneNumber = resultLoginCheck.PhoneNumber,
+                    AccessToken = ""
                 };
 
                 return resultUser;

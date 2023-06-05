@@ -19,7 +19,7 @@ namespace UnitTest
         }
 
         [Fact]
-        public async Task TestGetAllCategory()
+        public async Task TestGetAllCategory_Return200()
         {
             // Arrange
             _categoryServiceMock.Setup(x => x.GetAllCategory()).ReturnsAsync(GetTestCategory());
@@ -33,7 +33,7 @@ namespace UnitTest
         }
 
         [Fact]
-        public async Task TestCreateCategory()
+        public async Task TestCreateCategory_Return200()
         {
             var newCategory = NewCategory();
             var categoryController = new CategoriesController(_categoryServiceMock.Object);
@@ -44,7 +44,7 @@ namespace UnitTest
         }
 
         [Fact]
-        public async Task TestGetCategoryById()
+        public async Task TestGetCategoryById_Return200()
         {
             var categories = GetTestCategory();
             _categoryServiceMock.Setup(x => x.GetIdAsync(1)).ReturnsAsync(categories[1]);
@@ -55,6 +55,31 @@ namespace UnitTest
             Assert.NotNull(categoryResult);
             Assert.Equal(categories[1].CategoryId, categoryResult.CategoryId);
             Assert.True(categories[1].CategoryId == categoryResult.CategoryId);
+        }
+
+        [Fact]
+        public async Task TestUpdateCategory_ReturnsOkWithTrueValue()
+        {
+            // Arrange
+            var category = NewCategory();
+
+            _categoryServiceMock.Setup(x => x.Update(category))
+                .ReturnsAsync(true);
+
+            var categoryController = new CategoriesController(_categoryServiceMock.Object);
+
+
+            // Act
+            var result = await categoryController.PutCategory(category.CategoryId, category);
+
+            // Assert
+            Assert.IsType<OkObjectResult>(result);
+
+            var actionResult = Assert.IsType<OkObjectResult>(result);
+            Assert.IsType<bool>(actionResult.Value);
+            Assert.True((bool)actionResult.Value);
+
+            _categoryServiceMock.Verify(x => x.Update(category), Times.Once);
         }
 
         // Fake data
