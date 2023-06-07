@@ -70,24 +70,23 @@ namespace CameraAPI.Services
             return false;
         }    
 
-        public async Task<bool> DeleteAsync(int CameraID)
+        public Task<bool> DeleteAsync(int cameraID)
         {
-            if(CameraID > 0)
+            if(cameraID > 0)
             {
-                var Camera = await _unitOfWork.Cameras.GetById(CameraID);
-                if (Camera != null)
+                var camera = _cameraRepository.Delete(cameraID);
+                if (camera)
                 {
-                    _unitOfWork.Cameras.Delete(Camera);
                     var result = _unitOfWork.Save();
-                    if (result > 0) return true;
+                    if (result == 0) return Task.FromResult(true);
                 }
             }
-            return false;
+            return Task.FromResult(false);
         }
 
         public async Task<List<CameraResponse>> GetAllCamera()
         {
-            var cameraList = await _unitOfWork.Cameras.GetAll();
+            var cameraList = await _cameraRepository.GetCameraList();
             var categories = await _categoryService.GetAllCategory();
             var cameraResponseList = _autoMapperService.MapList<Camera, CameraResponse>(cameraList);
 
@@ -130,7 +129,7 @@ namespace CameraAPI.Services
         {
             try
             {
-                var cameras = await _cameraRepository.GetAll();
+                var cameras = await _cameraRepository.GetCameraList();
                 var categories = await _categoryService.GetAllCategory();
 
                 var shopQuery = from camera in cameras
@@ -251,6 +250,7 @@ namespace CameraAPI.Services
                     .Where(pair => pair.Category != null)
                     .Select(pair => new CameraResponse
                     {
+                        CameraID = pair.Camera.CameraId,
                         CameraName = pair.Camera.CameraName,
                         Brand = pair.Camera.Brand,
                         Price = pair.Camera.Price,
@@ -295,39 +295,47 @@ namespace CameraAPI.Services
         {
             if( cameraId > 0 )
             {
-                var Camera = await _cameraRepository.GetById(cameraId);
-                var category = await _categoryService.GetIdAsync((int)Camera.CategoryId);
-                if (Camera != null)
+                var camera = await _cameraRepository.GetById(cameraId);
+                if (camera.IsDelete == true)
                 {
-                    var cameraResponse = _autoMapperService.Map<Camera, CameraResponseID>(Camera);
-                    cameraResponse.CategoryName = category.Name;
-                    return cameraResponse;
-                }    
+                    return null;
+                }
+                else
+                {
+
+                    var category = await _categoryService.GetIdAsync((int)camera.CategoryId);
+                    if (camera != null)
+                    {
+                        var cameraResponse = _autoMapperService.Map<Camera, CameraResponseID>(camera);
+                        cameraResponse.CategoryName = category.Name;
+                        return cameraResponse;
+                    }
+                }
             }
             return null;
         }
 
-        public async Task<bool> Update(CameraResponse cameraResponse, string UserID, int id)
+        public async Task<bool> Update(CameraPostRequest cameraRequest, string UserID, int id)
         {
-            if(cameraResponse != null)
+            if(cameraRequest != null)
             {
                 var cameraDetail = await _unitOfWork.Cameras.GetById(id);
                 var category = await _categoryService.GetIdAsync((int)cameraDetail.CategoryId);
 
                 if (cameraDetail != null)
                 {
-                    cameraDetail.Name = cameraResponse.CameraName;
-                    cameraDetail.Description = cameraResponse.Description;
+                    cameraDetail.Name = cameraRequest.Name;
+                    cameraDetail.Description = cameraRequest.Description;
                     cameraDetail.IsDelete = false;
                     cameraDetail.UpdatedDate = DateTime.Now;
                     cameraDetail.CreatedDate = DateTime.Now;
                     cameraDetail.CreatedBy = Convert.ToInt16(UserID);
                     cameraDetail.UpdatedBy = Convert.ToInt16(UserID);
-                    cameraDetail.Brand = cameraResponse.Brand;
+                    cameraDetail.Brand = cameraRequest.Brand;
                     cameraDetail.CategoryId = category.CategoryId;
-                    cameraDetail.Img = cameraResponse.Img;
-                    cameraDetail.Price = cameraResponse.Price;
-                    cameraDetail.Quantity = cameraResponse.Quantity;
+                    cameraDetail.Img = cameraRequest.Img;
+                    cameraDetail.Price = cameraRequest.Price;
+                    cameraDetail.Quantity = cameraRequest.Quantity;
 
                     _unitOfWork.Cameras.Update(cameraDetail);
                     var result = _unitOfWork.Save();

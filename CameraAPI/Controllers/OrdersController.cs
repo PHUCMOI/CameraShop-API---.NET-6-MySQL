@@ -48,23 +48,29 @@ namespace CameraAPI.Controllers
         // PUT: api/Orders/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutOrder(Order order)
+        public async Task<IActionResult> PutOrder(OrderRequest order, int id)
         {
+            var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
+            var nameIdentifierValue = userIdentity.Claims.ToList();
             try
             {
-                if (order != null)
+                if (nameIdentifierValue[4].Value == "admin")
                 {
-                    var CameraDetails = await _orderService.Update(order);
-                    if (CameraDetails)
+
+                    if (order != null)
                     {
-                        return Ok(CameraDetails);
+                        var orderResponse = await _orderService.Update(order, nameIdentifierValue[3].Value, id);
+                        if (orderResponse)
+                        {
+                            return Ok(orderResponse);
+                        }
                     }
+                    return BadRequest("orderResponse is null");
                 }
-                return BadRequest();
+                return BadRequest("user can not use this endpoint");
             }
             catch (Exception ex)
             {
-
                 return BadRequest(ex.Message);
             }
         }
@@ -101,7 +107,7 @@ namespace CameraAPI.Controllers
 
                     return new ActionResult<OrderResponsePayPal>(response);
                 }
-                return BadRequest();
+                return BadRequest("orderRequest is null");
             }
             catch (Exception ex) 
             {
@@ -116,34 +122,44 @@ namespace CameraAPI.Controllers
         {
             var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
             var nameIdentifierValue = userIdentity.Claims.ToList();
-            var order = new OrderRequest()
+            if (nameIdentifierValue[4].Value == "admin")
             {
-                UserId = Convert.ToInt16(nameIdentifierValue[3].Value),
-                Username = nameIdentifierValue[2].Value,
-                Address = address,
-                Payment = payment,
-                Status = "Prepare",
-                Price = 0,
-                Message = message
-            };
-            var orderDetail = await _orderService.Create(order, camera, nameIdentifierValue[3].Value, delivery, coupon);
-            if (orderDetail != null)
-            {
-                return Ok(orderDetail);
+                var order = new OrderRequest()
+                {
+                    UserId = Convert.ToInt16(nameIdentifierValue[3].Value),
+                    Username = nameIdentifierValue[2].Value,
+                    Address = address,
+                    Payment = payment,
+                    Status = "Prepare",
+                    Price = 0,
+                    Message = message
+                };
+                var orderResponse = await _orderService.Create(order, camera, nameIdentifierValue[3].Value, delivery, coupon);
+                if (orderResponse != null)
+                {
+                    return Ok(orderResponse);
+                }
+                return BadRequest("orderResponse is null");
             }
-            return BadRequest();
+            return BadRequest("user can not use this endpoint");
         }
 
         // DELETE: api/Orders/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteOrder(int id)
         {
-            var orderDetail = await _orderService.DeleteAsync(id);
-            if (orderDetail)
+            var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
+            var nameIdentifierValue = userIdentity.Claims.ToList();
+            if (nameIdentifierValue[4].Value == "admin")
             {
-                return Ok(orderDetail);
+                var result = await _orderService.DeleteAsync(id);
+                if (result)
+                {
+                    return Ok(result);
+                }
+                return BadRequest("can not delete");
             }
-            return BadRequest();
+            return BadRequest("use can not use this endpoint");
         }
     }
 }

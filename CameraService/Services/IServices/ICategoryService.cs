@@ -8,7 +8,7 @@ namespace CameraService.Services.IRepositoryServices
         Task<IEnumerable<CategoryResponse>> GetAllCategory();
         Task<CategoryResponse> GetIdAsync(int categoryID);
         Task<bool> Create(CategoryRequest category, string userID);
-        Task<bool> Update(CategoryResponse categoryResponse, string UserID, int id);
+        Task<bool> Update(CategoryRequest categoryResponse, string UserID, int id);
         Task<bool> DeleteAsync(int categoryID);
     }
 }

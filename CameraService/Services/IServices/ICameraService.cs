@@ -17,7 +17,7 @@ namespace CameraAPI.Services.Interfaces
         Task<List<PaginationCameraResponse>> GetFromStoredProcedure(int pageNumber, int? categoryID = null, string? name = null,
         string? brand = null, decimal? minPrice = null, decimal? maxPrice = null,string? FilterType = null, int? quantity = null);
         Task<bool> Create(CameraPostRequest cameraPostRequest, string UserID);
-        Task<bool> Update(CameraResponse camera, string UserID, int id);
+        Task<bool> Update(CameraPostRequest camera, string UserID, int id);
         Task<bool> DeleteAsync(int CameraID);        
     }
 }

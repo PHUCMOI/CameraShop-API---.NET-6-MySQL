@@ -1,5 +1,6 @@
 ﻿using CameraAPI.AppModel;
 using CameraAPI.Models;
+using CameraCore.Models;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -67,12 +68,12 @@ namespace CameraAPI.Repositories
                     string query = @"SELECT *, c.Name AS CameraName, cat.Name AS CategoryName,    
                                 DENSE_RANK() OVER (ORDER BY c.Sold DESC) AS Rank
                                 FROM (
-                                    SELECT * FROM shop.camera
+                                    SELECT * FROM dbo.camera
                                     UNION
                                     SELECT * FROM [Warehouse].[warehouse].[Camera]
                                 ) AS c
                                 JOIN Category cat ON c.CategoryId = cat.CategoryId
-                                WHERE 1=1";
+                                WHERE c.isDelete = 0 ";
 
                     query = CalculateSQLString(query, categoryID, name, brand, minPrice, maxPrice, FilterType, quantity);
 
@@ -96,6 +97,7 @@ namespace CameraAPI.Repositories
                         {
                             var cameraResponse = new CameraResponse
                             {
+                                CameraID = camera.CameraID,
                                 CameraName = camera.CameraName,
                                 Brand = camera.Brand,
                                 Price = camera.Price,
@@ -147,6 +149,7 @@ namespace CameraAPI.Repositories
                         {
                             cameraResponses.Add(new CameraResponse
                             {
+                                CameraID = result.GetInt32(result.GetOrdinal("CameraID")),
                                 CameraName = result.GetString(result.GetOrdinal("CameraName")),
                                 Brand = result.GetString(result.GetOrdinal("Brand")),
                                 Price = result.GetDecimal(result.GetOrdinal("Price")),
@@ -168,6 +171,63 @@ namespace CameraAPI.Repositories
             }
         }
 
+        public bool Delete(int cameraId)
+        {
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(_configuration.GetConnectionString("InternShop")))
+                {
+                    var updateQuery = @"UPDATE [InternShop].[dbo].[Camera]
+                                SET [IsDelete] = 1
+                                WHERE [CameraId] = @cameraId";
+
+                    var parameters = new { CameraId = cameraId };
+                    connection.Execute(updateQuery, parameters);
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
+        public async Task<List<Camera>> GetCameraList()
+        {
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(_configuration.GetConnectionString("InternShop")))
+                {
+                    var query = @"SELECT
+                                    c.CameraID,
+                                    c.Name,
+                                    c.Brand,
+                                    c.Price,
+                                    c.Img,
+                                    c.Quantity,
+                                    c.CategoryId,
+                                    c.Description,
+                                    c.Sold,
+                                    c.CreatedBy,
+                                    c.CreatedDate,
+                                    c.UpdatedBy,
+                                    c.UpdatedDate,
+                                    c.IsDelete
+                                FROM
+                                    Camera c
+                                WHERE
+                                    c.isDelete = 0
+                            ";
+
+                    var cameraList = await connection.QueryAsync<Camera>(query);
+                    return cameraList.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
     }
 }
         

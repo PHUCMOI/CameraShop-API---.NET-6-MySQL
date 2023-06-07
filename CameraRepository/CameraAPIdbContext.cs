@@ -20,12 +20,12 @@ namespace CameraAPI.Models
         }
 
         public virtual DbSet<Camera> Cameras { get; set; }
-        public virtual DbSet<Category> Categories { get; set; }
+        public virtual DbSet<User> Categories { get; set; }
         public virtual DbSet<Order> Orders { get; set; }
         public virtual DbSet<OrderDetail> OrderDetails { get; set; }
         public virtual DbSet<User> Users { get; set; }
         public DbSet<Camera> ShopCameras { get; set; }
-        public DbSet<Category> ShopCategories { get; set; }
+        public DbSet<User> ShopCategories { get; set; }
 
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

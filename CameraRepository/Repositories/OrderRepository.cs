@@ -28,7 +28,7 @@ namespace CameraRepository.Repositories
         {
             try
             {
-                using(SqlConnection connection = new SqlConnection(_configuration.GetConnectionString("InternShop")))
+                using (SqlConnection connection = new SqlConnection(_configuration.GetConnectionString("InternShop")))
                 {
                     var orderQuery = $@"INSERT INTO [dbo].[Order]
                                                            ([UserId]
@@ -98,7 +98,7 @@ namespace CameraRepository.Repositories
             catch (Exception ex)
             {
                 return 0;
-                Console.WriteLine(ex.ToString());   
+                Console.WriteLine(ex.ToString());
             }
         }
 
@@ -180,6 +180,120 @@ namespace CameraRepository.Repositories
             catch (Exception ex)
             {
                 return null;
+            }
+        }
+
+        public async Task<OrderRequestPayPal> GetOrderById(int orderId)
+        {
+            try
+            {
+                OrderRequestPayPal orderRequestPayPal = null;
+
+                using (SqlConnection connection = new SqlConnection(_configuration.GetConnectionString("InternShop")))
+                {
+                    var orderQuery = $@"SELECT o.[OrderId]
+                                      ,[UserId]
+                                      ,[Username]
+                                      ,[Address]
+                                      ,[Payment]
+                                      ,o.[Status]
+                                      ,o.[Price]
+                                      ,[Message]
+                                  FROM [InternShop].[dbo].[Order] o
+                                  WHERE o.OrderId = @OrderId";
+
+                    var orderParameters = new { OrderId = orderId };
+                    var order = await connection.QuerySingleOrDefaultAsync<Order>(orderQuery, orderParameters);
+
+                    if (order != null)
+                    {
+                        orderRequestPayPal = new OrderRequestPayPal
+                        {
+                            OrderId = order.OrderId,
+                            UserId = order.UserId,
+                            Username = order.Username,
+                            Address = order.Address,
+                            Payment = order.Payment,
+                            Status = order.Status,
+                            Price = (decimal)order.Price,
+                            Message = order.Message
+                        };
+
+                        var orderDetailQuery = $@"SELECT [OrderId]
+                                               ,[CameraId]
+                                               ,[Quantity]
+                                               ,[Status]
+                                           FROM [InternShop].[dbo].[OrderDetail]
+                                           WHERE [OrderId] = @OrderId";
+
+                        var orderDetailParameters = new { OrderId = orderId };
+                        var orderDetails = await connection.QueryAsync<OrderDetail>(orderDetailQuery, orderDetailParameters);
+                        var orderDetailList = orderDetails.ToList();
+
+                        if (orderDetailList.Any())
+                        {
+                            orderRequestPayPal.OrderDetails = new List<OrderDetail1>();
+
+                            foreach (var orderDetail in orderDetailList)
+                            {
+                                var cameraQuery = $@"SELECT [CategoryId]
+                                                   ,[Name]
+                                                   ,[Brand]
+                                                   ,[Description]
+                                                   ,[Price]
+                                                   ,[Img]
+                                               FROM [InternShop].[dbo].[Camera]
+                                               WHERE [CameraId] = @CameraId";
+
+                                var cameraParameters = new { CameraId = orderDetail.CameraId };
+                                var camera = await connection.QuerySingleOrDefaultAsync<Camera1>(cameraQuery, cameraParameters);
+
+                                var orderDetail1 = new OrderDetail1
+                                {
+                                    OrderId = orderDetail.OrderId,
+                                    CameraId = orderDetail.CameraId,
+                                    Quantity = orderDetail.Quantity,
+                                    Status = orderDetail.Status,
+                                    Camera = camera
+                                };
+
+                                orderRequestPayPal.OrderDetails.Add(orderDetail1);
+                            }
+                        }
+                    }
+                }
+
+                return orderRequestPayPal;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
+        public bool Delete(int orderId)
+        {
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(_configuration.GetConnectionString("InternShop")))
+                {
+                    var updateOrderQuery = @"UPDATE [InternShop].[dbo].[Order]
+                                SET [IsDelete] = 1
+                                WHERE [OrderId] = @OrderId";
+
+                    var updateOrderDetailQuery = @"UPDATE [InternShop].[dbo].[OrderDetail]
+                                SET [IsDelete] = 1
+                                WHERE [OrderId] = @OrderId";
+
+                    var parameters = new { OrderId = orderId };
+                    connection.Execute(updateOrderQuery, parameters);
+                    connection.Execute(updateOrderDetailQuery, parameters);
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                return false;
             }
         }
 

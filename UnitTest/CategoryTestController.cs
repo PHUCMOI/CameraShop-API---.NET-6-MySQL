@@ -83,21 +83,21 @@ namespace UnitTest
         }
 
         // Fake data
-        private List<Category> GetTestCategory()
+        private List<User> GetTestCategory()
         {
-            var testCategory = new List<Category>();
-            testCategory.Add(new Category { CategoryId = 1, Name = "phuc", IsDelete = false, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now }); ;
-            testCategory.Add(new Category { CategoryId = 2, Name = "ư", IsDelete = false, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now }); ;
-            testCategory.Add(new Category { CategoryId = 3, Name = "phưuc", IsDelete = false, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now }); ;
-            testCategory.Add(new Category { CategoryId = 4, Name = "phruc", IsDelete = false, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now }); ;
-            testCategory.Add(new Category { CategoryId = 5, Name = "phytic", IsDelete = false, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now }); ;
+            var testCategory = new List<User>();
+            testCategory.Add(new User { CategoryId = 1, Name = "phuc", IsDelete = false, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now }); ;
+            testCategory.Add(new User { CategoryId = 2, Name = "ư", IsDelete = false, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now }); ;
+            testCategory.Add(new User { CategoryId = 3, Name = "phưuc", IsDelete = false, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now }); ;
+            testCategory.Add(new User { CategoryId = 4, Name = "phruc", IsDelete = false, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now }); ;
+            testCategory.Add(new User { CategoryId = 5, Name = "phytic", IsDelete = false, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now }); ;
 
             return testCategory;
         }
 
-        private Category NewCategory()
+        private User NewCategory()
         {
-            return new Category { CategoryId = 1, Name = "phuc", IsDelete = false, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now };
+            return new User { CategoryId = 1, Name = "phuc", IsDelete = false, CreatedBy = 1, CreatedDate = DateTime.Now, UpdatedBy = 1, UpdatedDate = DateTime.Now };
         }
     }
 }

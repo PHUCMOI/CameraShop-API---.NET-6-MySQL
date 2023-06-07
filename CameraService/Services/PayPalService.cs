@@ -4,6 +4,9 @@ using System.Net;
 using CameraService.Services.IRepositoryServices;
 using Microsoft.Extensions.Configuration;
 using CameraCore.Models;
+using System.Net.WebSockets;
+using static System.Net.WebRequestMethods;
+using Microsoft.AspNetCore.Http;
 
 namespace CameraService.Services
 {
@@ -23,9 +26,9 @@ namespace CameraService.Services
         }
 
         public async Task<PayPalPayment> CreatePaymentUrl(PaymentInformationModel model)
-        {           
-            var paypalOrderId = DateTime.Now.Ticks;
-            var urlCallBack = _configuration["PaymentCallBack:ReturnUrl"];
+        {
+            var paypalOrderId = model.OrderId;
+            var returnUrl = _configuration["PaymentCallBack:ReturnUrl"];
             var payment = new PayPal.v1.Payments.Payment()
             {
                 Intent = "sale",
@@ -68,9 +71,9 @@ namespace CameraService.Services
                 RedirectUrls = new RedirectUrls()
                 {
                     ReturnUrl =
-                        $"{urlCallBack}?payment_method=PayPal&success=1&order_id={paypalOrderId}",
+                       $"{returnUrl}?payment_method=PayPal&success=1&order_id={paypalOrderId}",
                     CancelUrl =
-                        $"{urlCallBack}?payment_method=PayPal&success=0&order_id={paypalOrderId}"
+                        $"{returnUrl}?payment_method=PayPal&success=0&order_id={paypalOrderId}"
                 },
                 Payer = new Payer()
                 {
@@ -108,6 +111,7 @@ namespace CameraService.Services
             var result = response.Result<Payment>();
             using var links = result.Links.GetEnumerator();
 
+            
             while (links.MoveNext())
             {
                 var lnk = links.Current;

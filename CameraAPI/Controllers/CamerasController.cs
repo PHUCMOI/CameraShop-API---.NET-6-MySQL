@@ -6,6 +6,7 @@ using CameraAPI.AppModel;
 using CameraService.Services.IRepositoryServices;
 using CameraCore.Models;
 using System.Security.Claims;
+using Nest;
 
 namespace CameraAPI.Controllers
 {
@@ -52,7 +53,7 @@ namespace CameraAPI.Controllers
             {
                 return Ok(CameraDetail);
             }
-            return BadRequest();
+            return BadRequest("This camera has been deleted");
         }   
 
         [HttpGet("linq")]
@@ -100,53 +101,70 @@ namespace CameraAPI.Controllers
         // PUT: api/Cameras/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutCamera(CameraResponse camera, int id)
+        public async Task<IActionResult> PutCamera(CameraPostRequest camera, int id)
         {
             try
             {
                 var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
                 var nameIdentifierValue = userIdentity.Claims.ToList();
-                if (camera != null)
+                if (nameIdentifierValue[4].Value == "admin")
                 {
-                    var CameraDetails = await _camService.Update(camera, nameIdentifierValue[3].Value, id);
-                    if (CameraDetails)
+                    if (camera != null)
                     {
-                        return Ok(CameraDetails);
+                        var CameraDetails = await _camService.Update(camera, nameIdentifierValue[3].Value, id);
+                        if (CameraDetails)
+                        {
+                            return Ok(CameraDetails);
+                        }
                     }
+                    return BadRequest("camera is null");
                 }
-                return BadRequest();
+                return BadRequest("This user can not use this endpoint");
             }
-            catch (Exception ex)            {
+            catch (Exception ex) {
 
-                return BadRequest();
+                return BadRequest(ex.Message);
             }
         }
         
         // POST: api/Cameras
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Camera>> PostCamera(CameraPostRequest cameraPostRequest)
+        public async Task<ActionResult<bool>> PostCamera(CameraPostRequest cameraPostRequest)
         {
             var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
             var nameIdentifierValue = userIdentity.Claims.ToList();
-            var CameraDetail = await _camService.Create(cameraPostRequest, nameIdentifierValue[3].Value);
-            if (CameraDetail)
+            if (nameIdentifierValue[4].Value == "admin")
             {
-                return Ok(CameraDetail);
+                if (cameraPostRequest != null)
+                {
+                    var CameraDetail = await _camService.Create(cameraPostRequest, nameIdentifierValue[3].Value);
+                    if (CameraDetail)
+                    {
+                        return Ok(CameraDetail);
+                    }
+                }
+                    return BadRequest("camera is null");
             }
-            return BadRequest();
+            return BadRequest("This user can not use this endpoint");
         }
 
         // DELETE: api/Cameras/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCamera(int id)
         {
-            var CameraDelete = await _camService.DeleteAsync(id);
-            if (CameraDelete)
+            var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
+            var nameIdentifierValue = userIdentity.Claims.ToList();
+            if (nameIdentifierValue[4].Value == "admin")
             {
-                return Ok(CameraDelete);
-            }   
-            return BadRequest();    
+                var CameraDelete = await _camService.DeleteAsync(id);
+                if (CameraDelete)
+                {
+                    return Ok(CameraDelete);
+                }
+                return BadRequest();
+            }
+            return BadRequest("This user can not use this endpoint");
         }
     }
 }

@@ -18,7 +18,6 @@ namespace CameraService.Services
         private readonly ICameraRepository _cameraRepository;
         private readonly IOrderRepository _orderRepository;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly ILogger _logger;
         public OrderService(IOrderRepository orderRepository, IUnitOfWork unitOfWork, ICameraRepository cameraRepository, IPayPalService payPalService)
         {
             _orderRepository = orderRepository;
@@ -102,13 +101,17 @@ namespace CameraService.Services
                     int i = 0;
                     foreach (var item in camera)
                     {
-                        if(CheckQuantity((int)item.Quantity, item.CameraID) == true && item.Quantity > 0)
+                        if (CheckQuantity((int)item.Quantity, item.CameraID) == true && item.Quantity > 0)
                         {                            
                             i++;
                             if (item.Price.HasValue && item.Quantity.HasValue)
                             {
                                 orderPrice += (item.Price.Value * item.Quantity.Value);
                             }                            
+                        }  
+                        else
+                        {
+                            throw new Exception("Not enough quantity to buy");
                         }    
                     }
 
@@ -143,72 +146,74 @@ namespace CameraService.Services
                         return response;
                     }
                 }
+                else
+                {
+                    throw new Exception("orderResquest is null");
+                }
+
                 return null;
             }
             catch (Exception ex)
             {
-               // _logger.LogError("Cannot create order: Failed" + ex.Message);
                 Console.WriteLine(ex.ToString());
-                return null;
+                throw new Exception(ex.Message);
             }
         }
 
-        public async Task<bool> DeleteAsync(int OrderID)
+        public Task<bool> DeleteAsync(int orderID) // sửa -> delete cả trong order detail với order id 
         {
-            if (OrderID > 0)
+            if (orderID > 0)
             {
-                var Order = await _unitOfWork.Orders.GetById(OrderID);
-                if (Order != null)
-                {
-                    _unitOfWork.Orders.Delete(Order);
+                var Order = _orderRepository.Delete(orderID);
+                if (Order)
+                {                    
                     var result = _unitOfWork.Save();
-                    if (result > 0) return true;
+                    if (result > 0) return Task.FromResult(true);
                 }
             }
-            return false;
+            return Task.FromResult(false);
         }
 
         public async Task<IEnumerable<OrderRequestPayPal>> GetAllOrder()
         {
-            var OrderList = await _orderRepository.GetOrderList();
-            return OrderList;
+            var orderList = await _orderRepository.GetOrderList();
+            return orderList;
         }
 
-        public async Task<CameraAPI.Models.Order> GetIdAsync(int OrderID)
+        public async Task<OrderRequestPayPal> GetIdAsync(int orderID) 
         {
-            if (OrderID > 0)
+            if (orderID > 0)
             {
-                var Order = await _orderRepository.GetById(OrderID);
-                if (Order != null)
+                var order = await _orderRepository.GetOrderById(orderID);
+                if (order != null)
                 {
-                    return Order;
+                    return order;
                 }
             }
             return null;
         }        
 
-        public async Task<bool> Update(CameraAPI.Models.Order order)
+        public async Task<bool> Update(OrderRequest order, string userId, int orderId) // sửa -> check thanh toán sửa status 
         {
             if (order != null)
             {
-                var orderDetail = await _unitOfWork.Orders.GetById(order.OrderId);
+                var orderDetail = await _orderRepository.GetById(orderId);
                 if (orderDetail != null)
                 {
-                    orderDetail.OrderId = order.OrderId;
                     orderDetail.Address = order.Address;
-                    orderDetail.CreatedBy = order.CreatedBy;
-                    orderDetail.CreatedDate = order.CreatedDate;
-                    orderDetail.UpdatedBy = order.UpdatedBy;
-                    orderDetail.UpdatedDate = order.UpdatedDate;
+                    orderDetail.CreatedBy = Convert.ToInt32(userId);
+                    orderDetail.CreatedDate = DateTime.Now;
+                    orderDetail.UpdatedBy = Convert.ToInt32(userId);
+                    orderDetail.UpdatedDate = DateTime.Now;
                     orderDetail.Status = order.Status;
                     orderDetail.Message = order.Message;
                     orderDetail.Price = order.Price;
                     orderDetail.Username = order.Username;
                     orderDetail.UserId = order.UserId;
-                    orderDetail.IsDelete = order.IsDelete;
+                    orderDetail.IsDelete = false;
                     orderDetail.Payment = order.Payment;
 
-                    _unitOfWork.Orders.Update(orderDetail);
+                    _orderRepository.Update(orderDetail);
                     var result = _unitOfWork.Save();
                     if (result > 0)
                     {

@@ -31,34 +31,38 @@ namespace CameraAPI.Controllers
 
         // GET: api/Categories/5
         [HttpGet("{id}")]
-        public async Task<CategoryResponse> GetCategoryByID(int id)
+        public async Task<ActionResult<CategoryResponse>> GetCategoryByID(int id)
         {
             var categories = await _categoryService.GetIdAsync(id);
             if (categories != null)
             {
                 return categories;
             }
-            return null;
+            return BadRequest("Category has been deleted");
         }
 
         // PUT: api/Categories/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutCategory(CategoryResponse category, int id)
+        public async Task<IActionResult> PutCategory(CategoryRequest category, int id)
         {
             try
             {
                 var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
                 var nameIdentifierValue = userIdentity.Claims.ToList();
-                if (category != null)
+                if (nameIdentifierValue[4].Value == "admin")
                 {
-                    var categories = await _categoryService.Update(category, nameIdentifierValue[3].Value, id);
-                    if (categories)
+                    if (category != null)
                     {
-                        return Ok(categories);
+                        var categories = await _categoryService.Update(category, nameIdentifierValue[3].Value, id);
+                        if (categories)
+                        {
+                            return Ok(categories);
+                        }
                     }
+                    return BadRequest("category is null");
                 }
-                return BadRequest();
+                return BadRequest("user can not use this endpoint");
             }
             catch (Exception ex)
             {
@@ -69,29 +73,40 @@ namespace CameraAPI.Controllers
         // POST: api/Categories
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Category>> PostCategory(CategoryRequest category)
+        public async Task<ActionResult<bool>> PostCategory(CategoryRequest category)
         {
             var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
-            var nameIdentifierValue = userIdentity.Claims.ToList();            
-
-            var categories = await _categoryService.Create(category, nameIdentifierValue[3].Value);
-            if (categories)
+            var nameIdentifierValue = userIdentity.Claims.ToList();
+            if (nameIdentifierValue[4].Value == "admin")
             {
-                return Ok(categories);
+                if (category != null)
+                {
+                    var categories = await _categoryService.Create(category, nameIdentifierValue[3].Value);
+                    if (categories)
+                    {
+                        return Ok(categories);
+                    }
+                }
+                return BadRequest("category is null");
             }
-            return BadRequest();
+            return BadRequest("user can not use this endpoint");
         }
 
         // DELETE: api/Categories/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
-            var categories = await _categoryService.DeleteAsync(id);
-            if (categories)
+            var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
+            var nameIdentifierValue = userIdentity.Claims.ToList();
+            if (nameIdentifierValue[4].Value == "admin")
             {
-                return Ok(categories);
+                var categories = await _categoryService.DeleteAsync(id);
+                if (categories)
+                {
+                    return Ok(categories);
+                }
             }
-            return BadRequest();
+            return BadRequest("user can not use this endpoint");
         }
     }
 }

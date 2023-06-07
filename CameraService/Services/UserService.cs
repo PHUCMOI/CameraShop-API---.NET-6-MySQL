@@ -14,18 +14,26 @@ namespace CameraService.Services
     {
         private readonly IUserRepository _userRepository;
         private readonly IAutoMapperService _autoMapperService;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public UserService(IUserRepository userRepository, IAutoMapperService autoMapperService)
+        public UserService(IUserRepository userRepository, IAutoMapperService autoMapperService, IUnitOfWork unitOfWork)
         {
             _userRepository = userRepository;
             _autoMapperService = autoMapperService;
+            _unitOfWork = unitOfWork;
         }
-        public Task<bool> Create(UserRequest user, string userID)
+        public async Task<bool> Create(UserRequest userRequest, string userID)
         {
-            if (user != null)
+            if (userRequest != null)
             {
-                var user = new Category()
+                var user = new User()
                 {
+                    Username = userRequest.Username,
+                    Password = userRequest.Password,
+                    Role = userRequest.Role,
+                    Email = userRequest.Email,
+                    PhoneNumber = userRequest.PhoneNumber,
+                    Status = userRequest.Status,
                     UpdatedBy = Convert.ToInt16(userID),
                     UpdatedDate = DateTime.Now,
                     CreatedBy = Convert.ToInt16(userID),
@@ -48,12 +56,21 @@ namespace CameraService.Services
 
         public Task<bool> DeleteAsync(int userId)
         {
-            throw new NotImplementedException();
+            if (userId > 0)
+            {
+                var user = _userRepository.Delete(userId);
+                if (user)
+                {
+                    var result = _unitOfWork.Save();
+                    if (result == 0) return Task.FromResult(true);
+                }
+            }
+            return Task.FromResult(false);
         }
 
         public async Task<IEnumerable<UserResponse>> GetAllUser()
         {
-            var userList = await _userRepository.GetAll();
+            var userList = await _userRepository.GetUserList();
             var userResponseList = _autoMapperService.MapList<User, UserResponse>(userList);
             return userResponseList;
         }
@@ -61,13 +78,42 @@ namespace CameraService.Services
         public async Task<UserResponse> GetIdAsync(int userId)
         {
             var user = await _userRepository.GetById(userId);
+            if (user.IsDelete == true)
+            {
+                return null;
+            }
             var userResponse = _autoMapperService.Map<User, UserResponse>(user);
             return userResponse;
         }
 
-        public Task<bool> Update(UserResponse user, string userID, int id)
+        public async Task<bool> Update(UserRequest user, string userID, int id)
         {
-            throw new NotImplementedException();
+            if (user != null)
+            {
+                var userDetail = await _userRepository.GetById(id);
+                if (user != null)
+                {
+                    userDetail.Username = user.Username;
+                    userDetail.Role = user.Role;
+                    userDetail.Password = user.Password;
+                    userDetail.Email = user.Email;
+                    userDetail.PhoneNumber = user.PhoneNumber;
+                    userDetail.Status = user.Status;
+                    userDetail.IsDelete = false;
+                    userDetail.UpdatedDate = DateTime.Now;
+                    userDetail.CreatedDate = DateTime.Now;
+                    userDetail.CreatedBy = Convert.ToInt16(userID);
+                    userDetail.UpdatedBy = Convert.ToInt16(userID);
+
+                    _userRepository.Update(userDetail);
+                    var result = _unitOfWork.Save();
+                    if (result > 0)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
     }
 }
