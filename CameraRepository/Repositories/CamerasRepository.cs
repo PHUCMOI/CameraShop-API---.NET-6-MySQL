@@ -167,7 +167,7 @@ namespace CameraAPI.Repositories
             }
             catch (Exception ex)
             {
-                return null;
+                throw new Exception(ex.Message);
             }
         }
 
@@ -188,7 +188,7 @@ namespace CameraAPI.Repositories
             }
             catch (Exception ex)
             {
-                return false;
+                throw new Exception(ex.Message);
             }
         }
 
@@ -207,12 +207,7 @@ namespace CameraAPI.Repositories
                                     c.Quantity,
                                     c.CategoryId,
                                     c.Description,
-                                    c.Sold,
-                                    c.CreatedBy,
-                                    c.CreatedDate,
-                                    c.UpdatedBy,
-                                    c.UpdatedDate,
-                                    c.IsDelete
+                                    c.Sold
                                 FROM
                                     Camera c
                                 WHERE

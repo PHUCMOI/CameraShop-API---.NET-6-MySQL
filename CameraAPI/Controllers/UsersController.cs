@@ -14,11 +14,9 @@ namespace CameraAPI.Controllers
     [ApiController, Authorize]
     public class UsersController : ControllerBase
     {
-        private readonly Models.CameraAPIdbContext _context;
         private readonly IUserService _userService;
-        public UsersController(Models.CameraAPIdbContext context, IUserService userService)
+        public UsersController(IUserService userService)
         {
-            _context = context;
             _userService = userService;
         }
 
@@ -60,10 +58,10 @@ namespace CameraAPI.Controllers
 
                     if (user != null)
                     {
-                        var categories = await _userService.Update(user, nameIdentifierValue[3].Value, id);
-                        if (categories)
+                        var userDetail = await _userService.Update(user, nameIdentifierValue[3].Value, id);
+                        if (userDetail)
                         {
-                            return Ok(categories);
+                            return Ok(userDetail);
                         }
                     }
                     return BadRequest("failed");
@@ -72,7 +70,7 @@ namespace CameraAPI.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest();
+                return BadRequest(ex.Message);
             }
         }
 

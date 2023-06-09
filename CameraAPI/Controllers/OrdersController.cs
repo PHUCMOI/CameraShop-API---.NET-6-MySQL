@@ -23,9 +23,9 @@ namespace CameraAPI.Controllers
 
         // GET: api/Orders
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<OrderRequestPayPal>>> GetOrders()
+        public async Task<ActionResult<IEnumerable<OrderRequestPayPal>>> GetOrders(int pageNumber)
         {
-            var orderList = await _orderService.GetAllOrder();
+            var orderList = await _orderService.GetAllOrder(pageNumber);
             if (orderList == null)
             {
                 return NotFound();
@@ -37,10 +37,10 @@ namespace CameraAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Order>> GetOrder(int id)
         {
-            var OrderDetail = await _orderService.GetIdAsync(id);
-            if (OrderDetail != null)
+            var orderDetail = await _orderService.GetIdAsync(id);
+            if (orderDetail != null)
             {
-                return Ok(OrderDetail);
+                return Ok(orderDetail);
             }
             return BadRequest();
         }
@@ -76,20 +76,20 @@ namespace CameraAPI.Controllers
         }
 
         [HttpPost("paypal")]
-        public async Task<ActionResult<OrderResponsePayPal>> PostOrderPayPal(PaymentInformationModel orderRequest, decimal? Delivery = null, decimal? Coupon = null)
+        public async Task<ActionResult<OrderResponsePayPal>> PostOrderPayPal(PaymentInformationModel orderRequest, decimal? delivery = null, decimal? coupon = null)
         {
             try
             {                
-                if (!Delivery.HasValue)
-                    Delivery = 0;
+                if (!delivery.HasValue)
+                    delivery = 0;
 
-                if (!Coupon.HasValue)
-                    Coupon = 0;
+                if (!coupon.HasValue)
+                    coupon = 0;
 
                 if (orderRequest != null) 
                 {
                     orderRequest.Price = orderRequest.Price + orderRequest.Price * 10 / 100; // Tax = 10%
-                    orderRequest.Price = (decimal)(orderRequest.Price + Delivery - Coupon);
+                    orderRequest.Price = (decimal)(orderRequest.Price + delivery - coupon);
 
                     var payment = await _paypalService.CreatePaymentUrl(orderRequest);
 
@@ -117,7 +117,7 @@ namespace CameraAPI.Controllers
 
         // POST: api/Orders
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
+        [HttpPost("purchaseCamera")]
         public async Task<ActionResult<OrderResponsePayPal>> PostOrder(List<CameraResponse> camera, string address, string payment, string? message = null, decimal? delivery = null, decimal? coupon = null)
         {
             var userIdentity = HttpContext.User.Identity as ClaimsIdentity;

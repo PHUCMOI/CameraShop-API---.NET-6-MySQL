@@ -104,10 +104,7 @@ namespace CameraService.Services
                         if (CheckQuantity((int)item.Quantity, item.CameraID) == true && item.Quantity > 0)
                         {                            
                             i++;
-                            if (item.Price.HasValue && item.Quantity.HasValue)
-                            {
-                                orderPrice += (item.Price.Value * item.Quantity.Value);
-                            }                            
+                            orderPrice += item.Price.Value * item.Quantity.Value;               
                         }  
                         else
                         {
@@ -160,7 +157,7 @@ namespace CameraService.Services
             }
         }
 
-        public Task<bool> DeleteAsync(int orderID) // sửa -> delete cả trong order detail với order id 
+        public Task<bool> DeleteAsync(int orderID)
         {
             if (orderID > 0)
             {
@@ -174,10 +171,10 @@ namespace CameraService.Services
             return Task.FromResult(false);
         }
 
-        public async Task<IEnumerable<OrderRequestPayPal>> GetAllOrder()
+        public async Task<List<PaginationOrderResponse>> GetAllOrder(int pageNumber)
         {
             var orderList = await _orderRepository.GetOrderList();
-            return orderList;
+            return MapOrderResponse(orderList, pageNumber);
         }
 
         public async Task<OrderRequestPayPal> GetIdAsync(int orderID) 
@@ -190,30 +187,35 @@ namespace CameraService.Services
                     return order;
                 }
             }
-            return null;
+            throw new Exception("orderId must greater than 0");
         }        
 
         public async Task<bool> Update(OrderRequest order, string userId, int orderId) // sửa -> check thanh toán sửa status 
         {
+            decimal totalPrice = 0;
             if (order != null)
-            {
+            {                
+                foreach(var item in order.OrderDetails)
+                {
+                    totalPrice += item.Quantity.Value * item.Camera.Price.Value;
+                }    
                 var orderDetail = await _orderRepository.GetById(orderId);
                 if (orderDetail != null)
                 {
                     orderDetail.Address = order.Address;
-                    orderDetail.CreatedBy = Convert.ToInt32(userId);
-                    orderDetail.CreatedDate = DateTime.Now;
+                    orderDetail.CreatedBy = orderDetail.CreatedBy;
+                    orderDetail.CreatedDate = orderDetail.CreatedDate;
                     orderDetail.UpdatedBy = Convert.ToInt32(userId);
                     orderDetail.UpdatedDate = DateTime.Now;
                     orderDetail.Status = order.Status;
                     orderDetail.Message = order.Message;
-                    orderDetail.Price = order.Price;
+                    orderDetail.Price = totalPrice;
                     orderDetail.Username = order.Username;
                     orderDetail.UserId = order.UserId;
                     orderDetail.IsDelete = false;
                     orderDetail.Payment = order.Payment;
 
-                    _orderRepository.Update(orderDetail);
+                    _orderRepository.Update(order, userId, orderId);
                     var result = _unitOfWork.Save();
                     if (result > 0)
                     {
@@ -222,6 +224,24 @@ namespace CameraService.Services
                 }
             }
             return false;
+        }
+        private List<PaginationOrderResponse> MapOrderResponse(List<OrderRequestPayPal> orders, int pageNumber)
+        {
+            var orderList = orders.ToList();
+            var count = orderList.Count;
+            var pageSize = 3;
+            var totalPage = (int)Math.Ceiling((decimal)count / pageSize);
+            if (pageNumber == 0) pageNumber = 1;
+
+            var paginationResponse = new PaginationOrderResponse
+            {
+                Orders = orderList.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList(),
+                PageIndex = pageNumber,
+                PageSize = pageSize,
+                TotalPage = totalPage
+            };
+
+            return new List<PaginationOrderResponse> { paginationResponse };
         }
     }
 }

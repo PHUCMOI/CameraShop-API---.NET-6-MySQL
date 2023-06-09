@@ -14,18 +14,19 @@ namespace CameraAPI.Services
     public class CamerasService : ICameraService
     {
         private IUnitOfWork _unitOfWork;
-        private readonly ICameraRepository _cameraRepository;
 
+        private readonly ICameraRepository _cameraRepository;
         private readonly ICategoryService _categoryService;
         private readonly IWarehouseCameraService _warehouseCameraService;
         private readonly IWarehouseCategoryService _warehouseCategoryService;
 
         private readonly IAutoMapperService _autoMapperService;
-
         private ILogger<CamerasService> _logger;
 
-        public CamerasService(IUnitOfWork unitOfWork, ICategoryService categoryService, IWarehouseCameraService warehouseCameraService,
-            IWarehouseCategoryService warehouseCategoryService, ICameraRepository cameraRepository, ILogger<CamerasService> logger,
+        public CamerasService(IUnitOfWork unitOfWork, ICategoryService categoryService, 
+            IWarehouseCameraService warehouseCameraService,
+            IWarehouseCategoryService warehouseCategoryService, 
+            ICameraRepository cameraRepository, ILogger<CamerasService> logger,
             IAutoMapperService autoMapperService) 
         {
             _unitOfWork = unitOfWork;
@@ -125,7 +126,7 @@ namespace CameraAPI.Services
 
         public async Task<List<PaginationCameraResponse>> GetCameraByLINQ(int pageNumber, int? categoryID = null,
             string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null,
-            string? FilterType = null, int? quantity = null)
+            string? filterType = null, int? quantity = null)
         {
             try
             {
@@ -215,11 +216,13 @@ namespace CameraAPI.Services
 
                 if (!string.IsNullOrEmpty(name))
                 {
+                    name = name.ToLower();
                     result = result.Where(p => p.CameraName.Contains(name));
                 }
 
                 if (!string.IsNullOrEmpty(brand))
                 {
+                    brand = brand.ToLower();
                     result = result.Where(p => p.Brand.Contains(brand));
                 }
 
@@ -229,10 +232,10 @@ namespace CameraAPI.Services
                 }
                 else if (maxPrice.HasValue || minPrice.HasValue)
                 {
-                    if (!string.IsNullOrEmpty(FilterType) && (maxPrice.HasValue || minPrice.HasValue))
+                    if (!string.IsNullOrEmpty(filterType) && (maxPrice.HasValue || minPrice.HasValue))
                     {
                         decimal? price = maxPrice.HasValue ? maxPrice : minPrice;
-                        result = (IQueryable<CameraQueryResult>)await CheckFilterTypeAsync(result, FilterType, price);
+                        result = (IQueryable<CameraQueryResult>)await CheckFilterTypeAsync(result, filterType, price);
                     }
                 }
 
@@ -267,8 +270,8 @@ namespace CameraAPI.Services
             }
             catch (Exception ex)
             {
-                _logger.LogInformation(ex.ToString());
-                return null;
+                _logger.LogError(ex.ToString());
+                throw new Exception("Get failed" + ex.Message);
             }
         }
 
@@ -293,21 +296,23 @@ namespace CameraAPI.Services
 
         public async Task<CameraResponseID> GetIdAsync(int cameraId)
         {
-            if( cameraId > 0 )
+            if (cameraId > 0 )
             {
                 var camera = await _cameraRepository.GetById(cameraId);
-                if (camera.IsDelete == true)
+                if (camera != null)
                 {
-                    return null;
-                }
-                else
-                {
-
-                    var category = await _categoryService.GetIdAsync((int)camera.CategoryId);
-                    if (camera != null)
+                    if (camera.IsDelete == true)
                     {
+                        return null;
+                    }
+                    else
+                    {
+                        var category = await _categoryService.GetIdAsync((int)camera.CategoryId);
                         var cameraResponse = _autoMapperService.Map<Camera, CameraResponseID>(camera);
-                        cameraResponse.CategoryName = category.Name;
+                        if (category != null)
+                            cameraResponse.CategoryName = category.Name;
+                        else
+                            cameraResponse.CategoryName = "N/A";
                         return cameraResponse;
                     }
                 }
@@ -320,7 +325,6 @@ namespace CameraAPI.Services
             if(cameraRequest != null)
             {
                 var cameraDetail = await _unitOfWork.Cameras.GetById(id);
-                var category = await _categoryService.GetIdAsync((int)cameraDetail.CategoryId);
 
                 if (cameraDetail != null)
                 {
@@ -328,11 +332,11 @@ namespace CameraAPI.Services
                     cameraDetail.Description = cameraRequest.Description;
                     cameraDetail.IsDelete = false;
                     cameraDetail.UpdatedDate = DateTime.Now;
-                    cameraDetail.CreatedDate = DateTime.Now;
-                    cameraDetail.CreatedBy = Convert.ToInt16(UserID);
+                    cameraDetail.CreatedDate = cameraDetail.CreatedDate;
+                    cameraDetail.CreatedBy = cameraDetail.CreatedBy;
                     cameraDetail.UpdatedBy = Convert.ToInt16(UserID);
                     cameraDetail.Brand = cameraRequest.Brand;
-                    cameraDetail.CategoryId = category.CategoryId;
+                    cameraDetail.CategoryId = cameraRequest.CategoryId;
                     cameraDetail.Img = cameraRequest.Img;
                     cameraDetail.Price = cameraRequest.Price;
                     cameraDetail.Quantity = cameraRequest.Quantity;
@@ -367,34 +371,34 @@ namespace CameraAPI.Services
             return new List<PaginationCameraResponse> { paginationResponse };
         }
 
-        public async Task<List<PaginationCameraResponse>> GetCameraBySQL(int pageNumber, int? categoryID = null, string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null, int? quantity = null)
+        public async Task<List<PaginationCameraResponse>> GetCameraBySQL(int pageNumber, int? categoryID = null, string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? filterType = null, int? quantity = null)
         {
             try
             {
-                var cameras = await _cameraRepository.GetBySQL(pageNumber, categoryID, name, brand, minPrice, maxPrice, FilterType, quantity);
+                var cameras = await _cameraRepository.GetBySQL(pageNumber, categoryID, name, brand, minPrice, maxPrice, filterType, quantity);
                 
                 return MapCameraResponse(cameras, pageNumber);                
             }
             catch (Exception ex)
             {
                 _logger.LogInformation(ex.Message, ex);                
-                return null;
+                throw new Exception(ex.Message);
             }
         }
 
         public async Task<List<PaginationCameraResponse>> GetFromStoredProcedure(int pageNumber, int? categoryID = null, string? name = null,
-        string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null, int? quantity = null)
+        string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? filterType = null, int? quantity = null)
         {
             try
             {
-                var cameras = await _cameraRepository.GetByStoredProcedure(pageNumber, categoryID, name, brand, minPrice, maxPrice, FilterType,quantity);
+                var cameras = await _cameraRepository.GetByStoredProcedure(pageNumber, categoryID, name, brand, minPrice, maxPrice, filterType,quantity);
 
                 return MapCameraResponse(cameras, pageNumber);
             }
             catch (Exception ex)
             {
                 _logger.LogInformation(ex.ToString());
-                return null;
+                throw new Exception(ex.Message);
             }
         }
     }

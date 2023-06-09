@@ -97,8 +97,7 @@ namespace CameraRepository.Repositories
             }
             catch (Exception ex)
             {
-                return 0;
-                Console.WriteLine(ex.ToString());
+                throw new Exception(ex.Message);
             }
         }
 
@@ -179,7 +178,7 @@ namespace CameraRepository.Repositories
             }
             catch (Exception ex)
             {
-                return null;
+                throw new Exception(ex.Message, ex);
             }
         }
 
@@ -267,7 +266,7 @@ namespace CameraRepository.Repositories
             }
             catch (Exception ex)
             {
-                return null;
+                throw new Exception(ex.Message, ex);
             }
         }
 
@@ -293,9 +292,34 @@ namespace CameraRepository.Repositories
             }
             catch (Exception ex)
             {
-                return false;
+                throw new Exception(ex.Message);
             }
         }
 
+        public void Update(OrderRequest order, string userId, int orderId)
+        {
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(_configuration.GetConnectionString("InternShop")))
+                {
+                    foreach (var orderDetail in order.OrderDetails) 
+                    {
+                        var updateOrderQuery = $@"UPDATE [dbo].[OrderDetail]
+                                   SET [CameraId] = {orderDetail.CameraId}
+                                      ,[Quantity] = {orderDetail.Quantity}
+                                      ,[Status] = '{orderDetail.Status}'
+                                      ,[UpdatedBy] = {Convert.ToInt32(userId)}
+                                      ,[UpdatedDate] = GETDATE()
+                                    WHERE OrderId = {orderDetail.OrderId}";
+                        var parameters = new { OrderId = orderId };
+                        connection.Execute(updateOrderQuery, parameters);
+                    }                    
+                }    
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
     }
 }

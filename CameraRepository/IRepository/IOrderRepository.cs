@@ -9,5 +9,6 @@ namespace CameraAPI.Repositories
         Task<OrderRequestPayPal> GetOrderById(int orderId);
         Task<decimal> CreateNewOrder(OrderRequest orderRequest, List<CameraResponse> camera, string userID, decimal orderPrice);
         bool Delete(int orderId);
+        void Update(OrderRequest order, string userId, int orderId);
     }
 }

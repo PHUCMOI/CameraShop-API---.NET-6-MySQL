@@ -1,11 +1,12 @@
 ﻿using CameraAPI.AppModel;
 using CameraAPI.Models;
+using CameraCore.Models;
 
 namespace CameraService.Services.IRepositoryServices
 {
     public interface IOrderService 
     {
-        Task<IEnumerable<OrderRequestPayPal>> GetAllOrder();
+        Task<List<PaginationOrderResponse>> GetAllOrder(int pageNumber);
         Task<OrderRequestPayPal> GetIdAsync(int orderID);
         Task<OrderResponsePayPal> Create(OrderRequest order, List<CameraResponse> camera, string userID, decimal? delivery = null, decimal? coupon = null);
         Task<bool> Update(OrderRequest order, string userId, int orderId);

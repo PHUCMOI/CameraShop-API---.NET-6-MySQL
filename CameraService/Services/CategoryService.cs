@@ -11,7 +11,9 @@ namespace CameraAPI.Services
         private IUnitOfWork _unitOfWork;
         private readonly ICategoryRepository _categoryRepository;
         private readonly IAutoMapperService _autoMapperService;
-        public CategoryService(IUnitOfWork unitOfWork, ICategoryRepository categoryRepository, IAutoMapperService autoMapperService)
+        public CategoryService(IUnitOfWork unitOfWork, 
+            ICategoryRepository categoryRepository, 
+            IAutoMapperService autoMapperService)
         {
             _unitOfWork = unitOfWork;
             _categoryRepository = categoryRepository;
@@ -49,7 +51,7 @@ namespace CameraAPI.Services
         {
             if (cagetoryID > 0)
             {
-                var cagetory =  _categoryRepository.Delete(cagetoryID);
+                var cagetory = _categoryRepository.Delete(cagetoryID);
                 if (cagetory)
                 {
                     var result = _unitOfWork.Save();
@@ -95,8 +97,8 @@ namespace CameraAPI.Services
                     categoryDetail.Name = categoryRequest.Name;
                     categoryDetail.IsDelete = false;
                     categoryDetail.UpdatedDate = DateTime.Now;
-                    categoryDetail.CreatedDate = DateTime.Now;
-                    categoryDetail.CreatedBy = Convert.ToInt16(UserID);
+                    categoryDetail.CreatedDate = categoryDetail.CreatedDate;
+                    categoryDetail.CreatedBy = categoryDetail.CreatedBy;
                     categoryDetail.UpdatedBy = Convert.ToInt16(UserID);
                     categoryDetail.CategoryId = categoryDetail.CategoryId;
 

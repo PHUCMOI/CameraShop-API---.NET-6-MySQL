@@ -36,64 +36,65 @@ namespace CameraAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<List<CameraResponse>>> GetCameras()
         {
-            var CameraList = await _camService.GetAllCamera();
-            if (CameraList == null)
+            var cameraList = await _camService.GetAllCamera();
+            if (cameraList == null)
             {
                 return NotFound();
             }
-            return Ok(CameraList);
+            return Ok(cameraList);
         }
 
         // GET: api/Cameras/5
         [HttpGet("{id}")]
         public async Task<ActionResult<CameraResponseID>> GetCamera(int id)
         {
-            var CameraDetail = await _camService.GetIdAsync(id);
-            if (CameraDetail != null)
+            var cameraDetail = await _camService.GetIdAsync(id);
+            if (cameraDetail != null)
             {
-                return Ok(CameraDetail);
+                return Ok(cameraDetail);
             }
             return BadRequest("This camera has been deleted");
         }   
 
         [HttpGet("linq")]
         public async Task<ActionResult<PaginationCameraResponse>> GetCameraByLINQ(int pageNumber, int? categoryID = null, 
-            string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null, int? quantity = null)
+            string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? filterType = null, int? quantity = null)
         {
-            var CameraDetail = await _camService.GetCameraByLINQ(pageNumber, categoryID, name, brand, minPrice, maxPrice, FilterType, quantity);
-            if (CameraDetail != null)
+            var cameraDetail = await _camService.GetCameraByLINQ(pageNumber, categoryID, name, brand, minPrice, maxPrice, filterType, quantity);
+            if (cameraDetail != null)
             {
-                return Ok(CameraDetail);
+                return Ok(cameraDetail);
             }
             return BadRequest();
         }
 
         [HttpGet("raw-query")]
         public async Task<ActionResult<List<PaginationCameraResponse>>> GetCameraByRawQuery(int pageNumber, int? categoryID = null, string? name = null,
-            string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null, int? quantity = null)
+            string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? filterType = null, int? quantity = null)
         {
-            var CameraDetail = await _camService.GetCameraBySQL(pageNumber, categoryID, name, brand, minPrice, maxPrice, FilterType, quantity);
-            if (CameraDetail != null)
+            var cameraDetail = await _camService.GetCameraBySQL(pageNumber, categoryID, name, brand, minPrice, maxPrice, filterType, quantity);
+            if (cameraDetail != null)
             {
-                return Ok(CameraDetail);
+                return Ok(cameraDetail);
             }
             return BadRequest();
         }
         
         [HttpGet("stored-procedure")]
         public async Task<ActionResult<List<PaginationCameraResponse>>> GetFromStoredProcedure(int pageNumber, int? categoryID = null, string? name = null,
-            string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null, int? quantity = null)
+            string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? filterType = null, int? quantity = null)
         {
             try
             {
-                var CameraDetail = await _camService.GetFromStoredProcedure(pageNumber, categoryID, name, brand, minPrice, maxPrice, FilterType, quantity);
-                if (CameraDetail != null)
+                var cameraDetail = await _camService.GetFromStoredProcedure(pageNumber, categoryID, name, brand, minPrice, maxPrice, filterType, quantity);
+                if (cameraDetail != null)
                 {
-                    return Ok(CameraDetail);
+                    return Ok(cameraDetail);
                 }
             }
             catch (Exception ex)
-            {                
+            {
+                throw new Exception(ex.Message);
             }
             return BadRequest();
         }
@@ -111,10 +112,10 @@ namespace CameraAPI.Controllers
                 {
                     if (camera != null)
                     {
-                        var CameraDetails = await _camService.Update(camera, nameIdentifierValue[3].Value, id);
-                        if (CameraDetails)
+                        var cameraDetails = await _camService.Update(camera, nameIdentifierValue[3].Value, id);
+                        if (cameraDetails)
                         {
-                            return Ok(CameraDetails);
+                            return Ok(cameraDetails);
                         }
                     }
                     return BadRequest("camera is null");
@@ -138,10 +139,10 @@ namespace CameraAPI.Controllers
             {
                 if (cameraPostRequest != null)
                 {
-                    var CameraDetail = await _camService.Create(cameraPostRequest, nameIdentifierValue[3].Value);
-                    if (CameraDetail)
+                    var cameraDetails = await _camService.Create(cameraPostRequest, nameIdentifierValue[3].Value);
+                    if (cameraDetails)
                     {
-                        return Ok(CameraDetail);
+                        return Ok(cameraDetails);
                     }
                 }
                     return BadRequest("camera is null");
@@ -157,10 +158,10 @@ namespace CameraAPI.Controllers
             var nameIdentifierValue = userIdentity.Claims.ToList();
             if (nameIdentifierValue[4].Value == "admin")
             {
-                var CameraDelete = await _camService.DeleteAsync(id);
-                if (CameraDelete)
+                var cameraDelete = await _camService.DeleteAsync(id);
+                if (cameraDelete)
                 {
-                    return Ok(CameraDelete);
+                    return Ok(cameraDelete);
                 }
                 return BadRequest();
             }
