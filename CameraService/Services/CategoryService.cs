@@ -79,12 +79,12 @@ namespace CameraAPI.Services
                 }    
                 var categoryResponse = _autoMapperService.Map<Category, CategoryResponse>(category);
 
-                if (category != null)
+                if (categoryResponse != null)
                 {
                     return categoryResponse;
                 }
             }
-            return null;
+            throw new Exception();
         }
 
         public async Task<bool> Update(CategoryRequest categoryRequest, string UserID, int id)

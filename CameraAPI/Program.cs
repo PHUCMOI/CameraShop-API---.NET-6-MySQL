@@ -1,4 +1,5 @@
 ﻿using CameraAPI.Models;
+using CameraCore.Models;
 using CameraService.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -50,6 +51,8 @@ builder.Services.AddDbContext<WarehouseDbContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("Warehouse"));
 });
+
+builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
 
 // Create JWT
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>

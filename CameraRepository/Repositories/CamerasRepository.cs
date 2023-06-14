@@ -23,61 +23,72 @@ namespace CameraAPI.Repositories
             _configuration = configuration;
         }
 
-        private string CalculateSQLString(string query, int? categoryID = null, string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null, int? quantity = null)
+        private string CalculateSQLString(int? categoryID = null, string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null, int? quantity = null)
         {
+            string query = "WHERE 1 = 1";
             if (categoryID != null)
             {
-                query += " AND c.CategoryID = @CategoryID ";
+                query += " AND CategoryID = @CategoryID ";
             }
             if (name != null)
             {
-                query += " AND c.Name LIKE '%' + @Name + '%'";
+                query += " AND Name LIKE '%' + @Name + '%'";
             }
             if (brand != null)
             {
-                query += " AND c.Brand LIKE @Brand";
+                query += " AND Brand LIKE @Brand";
             }
             if (minPrice != null && maxPrice != null)
             {
-                query += " AND c.Price >= @MinPrice AND c.Price <= @MaxPrice";
+                query += " AND Price >= @MinPrice AND Price <= @MaxPrice";
             }
             else
             {
                 if (FilterType == "lte")
                 {
-                    query += " AND c.Price <= @Price";
+                    query += " AND Price <= @Price";
                 }
                 else if (FilterType == "gte")
                 {
-                    query += " AND c.Price >= @Price";
+                    query += " AND Price >= @Price";
                 }
             }
             return query;
         }
 
-        public async Task<List<CameraResponse>> GetBySQL(int pageNumber, int? categoryID = null, string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null, int? quantity = null)
+        public async Task<List<CameraResponse>> GetBySQL(int pageNumber, int? categoryID = null, string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null)
         {
             try
             {
                 using (SqlConnection connection = new SqlConnection(_configuration.GetConnectionString("InternShop")))
                 {
                     await connection.OpenAsync();
-
-                    // câu lệnh trả về gồm danh sách các camera, category name của camera,
-                    // và xếp hạng theo số lượng đã được bán
-                    string query = @"SELECT *, c.Name AS CameraName, cat.Name AS CategoryName,    
-                                DENSE_RANK() OVER (ORDER BY c.Sold DESC) AS Rank
-                                FROM (
-                                    SELECT * FROM dbo.camera
-                                    UNION
-                                    SELECT * FROM [Warehouse].[warehouse].[Camera]
-                                ) AS c
-                                JOIN Category cat ON c.CategoryId = cat.CategoryId
-                                WHERE c.isDelete = 0 ";
-
-                    query = CalculateSQLString(query, categoryID, name, brand, minPrice, maxPrice, FilterType, quantity);
+                    var queryFilter = CalculateSQLString(categoryID, name, brand, minPrice, maxPrice, FilterType);
 
                     decimal? price = maxPrice.HasValue ? maxPrice : minPrice;
+                    // câu lệnh trả về gồm danh sách các camera, category name của camera,
+                    // và xếp hạng theo số lượng đã được bán
+                    string query = $@"WITH AllCameras AS (
+                                        SELECT c.CameraID, c.Name AS CameraName, c.Brand, c.Price, c.Img AS Img, c.Quantity, cat.Name AS CategoryName, c.Description, c.Sold
+                                        FROM dbo.Camera c
+                                        INNER JOIN dbo.Category cat ON c.CategoryID = cat.CategoryID
+                                        WHERE c.isDelete = 0
+                                        UNION ALL
+                                        SELECT c.CameraId, c.Name AS CameraName, c.Brand, c.Price, c.Img AS Img, c.Quantity, cat.Name AS CategoryName, c.Description, c.Sold
+                                        FROM [Warehouse].warehouse.Camera c
+                                        INNER JOIN dbo.Category cat ON c.CategoryID = cat.CategoryID
+                                        WHERE c.isDelete = 0
+                                    ),
+                                    RankedCameras AS (
+                                        SELECT *,
+                                            RANK() OVER (ORDER BY Sold DESC) AS Rank
+                                        FROM AllCameras
+                                    )
+                                    SELECT *
+                                    FROM RankedCameras
+                                    {queryFilter}
+                                    ORDER BY Rank;
+                                    ";                    
 
                     var parameters = new
                     {
@@ -86,14 +97,13 @@ namespace CameraAPI.Repositories
                         Brand = brand,
                         MinPrice = minPrice,
                         MaxPrice = maxPrice,
-                        Price = price,
-                        Quantity = quantity
+                        Price = price
                     };
 
                     // Dapper để truy xuất dữ liệu và ánh xạ vào CameraResponse
-                    var cameras = await connection.QueryAsync<CameraResponse, string, long, CameraResponse>(
+                    var cameras = await connection.QueryAsync<CameraResponse, string, string, long, CameraResponse>(
                         query,
-                        (camera, categoryName, rank) =>
+                        (camera, categoryName, description, rank) =>
                         {
                             var cameraResponse = new CameraResponse
                             {
@@ -104,13 +114,13 @@ namespace CameraAPI.Repositories
                                 Img = camera.Img,
                                 Quantity = camera.Quantity,
                                 CategoryName = categoryName,
-                                Description = camera.Description,
+                                Description = description,
                                 BestSeller = "Top " + rank.ToString() + " seller"
                             };
                             return cameraResponse;
                         },
                         parameters,
-                        splitOn: "CategoryName,Rank"
+                        splitOn: "CategoryName,Description,Rank"
                     );
 
                     return cameras.ToList();
@@ -118,11 +128,11 @@ namespace CameraAPI.Repositories
             }
             catch (Exception ex)
             {
-                return null;
+                throw new Exception(ex.Message);
             }
         }
 
-        public async Task<List<CameraResponse>> GetByStoredProcedure(int pageNumber, int? categoryID = null, string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null, int? quantity = null)
+        public async Task<List<CameraResponse>> GetByStoredProcedure(int pageNumber, int? categoryID = null, string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null)
         {
             try
             {
@@ -137,7 +147,6 @@ namespace CameraAPI.Repositories
                     command.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@brand", brand ?? (object)DBNull.Value));
                     command.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@minPrice", minPrice ?? (object)DBNull.Value));
                     command.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@maxPrice", maxPrice ?? (object)DBNull.Value));
-                    command.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@quantity", quantity ?? (object)DBNull.Value));
                     command.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@Filter", FilterType ?? (object)DBNull.Value));
 
                     await _context.Database.OpenConnectionAsync();

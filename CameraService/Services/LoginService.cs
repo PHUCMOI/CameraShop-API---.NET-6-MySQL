@@ -31,7 +31,7 @@ namespace CameraService.Services
                     var resultLoginCheck = _loginRepository.CheckLogin(username, password);
                     if (resultLoginCheck == null)
                     {
-                        return null;
+                        throw new Exception();
                     }
                     else
                     {

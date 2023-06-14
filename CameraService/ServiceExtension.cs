@@ -7,6 +7,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using CameraService.Services.IServices;
 using CameraAPI.Services;
+using System.Configuration;
+using CameraCore.Models;
 
 namespace CameraService.Services
 {
@@ -49,8 +51,10 @@ namespace CameraService.Services
             services.AddTransient<IPayPalService, PayPalService>();
 
             services.AddLogging();
+
             services.AddSingleton<IAutoMapperService, AutoMapperService>();
 
+            services.AddScoped<IMailService, MailService>();
             return services;
         }
     }

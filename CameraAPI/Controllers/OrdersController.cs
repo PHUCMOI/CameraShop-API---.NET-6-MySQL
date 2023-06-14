@@ -8,8 +8,8 @@ using System.Security.Claims;
 
 namespace CameraAPI.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController, Authorize]
+    [Route("api/order")]
+    [ApiController]
     public class OrdersController : ControllerBase
     {
         private readonly IOrderService _orderService;
@@ -91,7 +91,7 @@ namespace CameraAPI.Controllers
                     orderRequest.Price = orderRequest.Price + orderRequest.Price * 10 / 100; // Tax = 10%
                     orderRequest.Price = (decimal)(orderRequest.Price + delivery - coupon);
 
-                    var payment = await _paypalService.CreatePaymentUrl(orderRequest);
+                    var payment = await _paypalService.CreatePaymentUrl(orderRequest, (decimal)delivery, (decimal)coupon);
 
                     var response = new OrderResponsePayPal
                     {
@@ -160,6 +160,22 @@ namespace CameraAPI.Controllers
                 return BadRequest("can not delete");
             }
             return BadRequest("use can not use this endpoint");
+        }
+
+        [HttpGet("PaymentSuccess")]
+        public async Task<IActionResult> PaymentSuccess([FromQuery] int orderId)
+        {
+            await _orderService.UpdateOrderStatus(orderId, "Paid");
+
+            return Ok();
+        }
+
+        [HttpGet("PaymentFail")]
+        public async Task<IActionResult> PaymentFail([FromQuery] int orderId)
+        {
+            await _orderService.UpdateOrderStatus(orderId, "Prepare");
+
+            return Ok();
         }
     }
 }

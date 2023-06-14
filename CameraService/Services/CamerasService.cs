@@ -126,7 +126,7 @@ namespace CameraAPI.Services
 
         public async Task<List<PaginationCameraResponse>> GetCameraByLINQ(int pageNumber, int? categoryID = null,
             string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null,
-            string? filterType = null, int? quantity = null)
+            string? filterType = null)
         {
             try
             {
@@ -216,13 +216,11 @@ namespace CameraAPI.Services
 
                 if (!string.IsNullOrEmpty(name))
                 {
-                    name = name.ToLower();
                     result = result.Where(p => p.CameraName.Contains(name));
                 }
 
                 if (!string.IsNullOrEmpty(brand))
                 {
-                    brand = brand.ToLower();
                     result = result.Where(p => p.Brand.Contains(brand));
                 }
 
@@ -235,13 +233,18 @@ namespace CameraAPI.Services
                     if (!string.IsNullOrEmpty(filterType) && (maxPrice.HasValue || minPrice.HasValue))
                     {
                         decimal? price = maxPrice.HasValue ? maxPrice : minPrice;
-                        result = (IQueryable<CameraQueryResult>)await CheckFilterTypeAsync(result, filterType, price);
+                        switch (filterType)
+                        {
+                            case "lte":
+                                result = result.Where(p => p.Price <= price);
+                                break;
+                            case "gte":
+                                result = result.Where(p => p.Price >= price);
+                                break;
+                            default:
+                                break;
+                        }
                     }
-                }
-
-                if (quantity.HasValue)
-                {
-                    result = result.Where(p => p.Quantity == quantity.Value);
                 }
 
                 var products = result
@@ -275,24 +278,6 @@ namespace CameraAPI.Services
             }
         }
 
-        private async Task<List<CameraQueryResult>> CheckFilterTypeAsync(IEnumerable<CameraQueryResult> products, string filter, decimal? price = null)
-        {
-            List<CameraQueryResult> filteredProducts = products.ToList();
-
-            switch (filter)
-            {
-                case "lte":
-                    filteredProducts = filteredProducts.Where(p => p.Price <= price).ToList();
-                    break;
-                case "gte":
-                    filteredProducts = filteredProducts.Where(p => p.Price >= price).ToList();
-                    break;
-                default:
-                    break;
-            }
-
-            return filteredProducts;
-        }
 
         public async Task<CameraResponseID> GetIdAsync(int cameraId)
         {
@@ -317,7 +302,7 @@ namespace CameraAPI.Services
                     }
                 }
             }
-            return null;
+            throw new Exception();
         }
 
         public async Task<bool> Update(CameraPostRequest cameraRequest, string UserID, int id)
@@ -371,11 +356,11 @@ namespace CameraAPI.Services
             return new List<PaginationCameraResponse> { paginationResponse };
         }
 
-        public async Task<List<PaginationCameraResponse>> GetCameraBySQL(int pageNumber, int? categoryID = null, string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? filterType = null, int? quantity = null)
+        public async Task<List<PaginationCameraResponse>> GetCameraBySQL(int pageNumber, int? categoryID = null, string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? filterType = null)
         {
             try
             {
-                var cameras = await _cameraRepository.GetBySQL(pageNumber, categoryID, name, brand, minPrice, maxPrice, filterType, quantity);
+                var cameras = await _cameraRepository.GetBySQL(pageNumber, categoryID, name, brand, minPrice, maxPrice, filterType);
                 
                 return MapCameraResponse(cameras, pageNumber);                
             }
@@ -387,11 +372,11 @@ namespace CameraAPI.Services
         }
 
         public async Task<List<PaginationCameraResponse>> GetFromStoredProcedure(int pageNumber, int? categoryID = null, string? name = null,
-        string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? filterType = null, int? quantity = null)
+        string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? filterType = null)
         {
             try
             {
-                var cameras = await _cameraRepository.GetByStoredProcedure(pageNumber, categoryID, name, brand, minPrice, maxPrice, filterType,quantity);
+                var cameras = await _cameraRepository.GetByStoredProcedure(pageNumber, categoryID, name, brand, minPrice, maxPrice, filterType);
 
                 return MapCameraResponse(cameras, pageNumber);
             }

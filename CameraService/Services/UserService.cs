@@ -80,7 +80,7 @@ namespace CameraService.Services
             var user = await _userRepository.GetById(userId);
             if (user.IsDelete == true)
             {
-                return null;
+                throw new Exception();
             }
             var userResponse = _autoMapperService.Map<User, UserResponse>(user);
             return userResponse;
@@ -101,8 +101,8 @@ namespace CameraService.Services
                     userDetail.Status = user.Status;
                     userDetail.IsDelete = false;
                     userDetail.UpdatedDate = DateTime.Now;
-                    userDetail.CreatedDate = DateTime.Now;
-                    userDetail.CreatedBy = Convert.ToInt16(userID);
+                    userDetail.CreatedDate = userDetail.CreatedDate;
+                    userDetail.CreatedBy = userDetail.CreatedBy;
                     userDetail.UpdatedBy = Convert.ToInt16(userID);
 
                     _userRepository.Update(userDetail);

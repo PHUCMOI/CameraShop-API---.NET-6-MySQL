@@ -58,9 +58,9 @@ namespace CameraAPI.Controllers
 
         [HttpGet("linq")]
         public async Task<ActionResult<PaginationCameraResponse>> GetCameraByLINQ(int pageNumber, int? categoryID = null, 
-            string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? filterType = null, int? quantity = null)
+            string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? filterType = null)
         {
-            var cameraDetail = await _camService.GetCameraByLINQ(pageNumber, categoryID, name, brand, minPrice, maxPrice, filterType, quantity);
+            var cameraDetail = await _camService.GetCameraByLINQ(pageNumber, categoryID, name, brand, minPrice, maxPrice, filterType);
             if (cameraDetail != null)
             {
                 return Ok(cameraDetail);
@@ -70,9 +70,9 @@ namespace CameraAPI.Controllers
 
         [HttpGet("raw-query")]
         public async Task<ActionResult<List<PaginationCameraResponse>>> GetCameraByRawQuery(int pageNumber, int? categoryID = null, string? name = null,
-            string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? filterType = null, int? quantity = null)
+            string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? filterType = null)
         {
-            var cameraDetail = await _camService.GetCameraBySQL(pageNumber, categoryID, name, brand, minPrice, maxPrice, filterType, quantity);
+            var cameraDetail = await _camService.GetCameraBySQL(pageNumber, categoryID, name, brand, minPrice, maxPrice, filterType);
             if (cameraDetail != null)
             {
                 return Ok(cameraDetail);
@@ -82,11 +82,11 @@ namespace CameraAPI.Controllers
         
         [HttpGet("stored-procedure")]
         public async Task<ActionResult<List<PaginationCameraResponse>>> GetFromStoredProcedure(int pageNumber, int? categoryID = null, string? name = null,
-            string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? filterType = null, int? quantity = null)
+            string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? filterType = null)
         {
             try
             {
-                var cameraDetail = await _camService.GetFromStoredProcedure(pageNumber, categoryID, name, brand, minPrice, maxPrice, filterType, quantity);
+                var cameraDetail = await _camService.GetFromStoredProcedure(pageNumber, categoryID, name, brand, minPrice, maxPrice, filterType);
                 if (cameraDetail != null)
                 {
                     return Ok(cameraDetail);

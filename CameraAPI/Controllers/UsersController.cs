@@ -10,7 +10,7 @@ using System.Security.Claims;
 
 namespace CameraAPI.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/user")]
     [ApiController, Authorize]
     public class UsersController : ControllerBase
     {

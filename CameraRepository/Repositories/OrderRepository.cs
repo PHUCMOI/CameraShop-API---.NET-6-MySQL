@@ -116,8 +116,7 @@ namespace CameraRepository.Repositories
                                           ,o.[Status]
                                           ,o.[Price]
                                           ,[Message]
-                                      FROM [InternShop].[dbo].[Order] o
-                                      WHERE o.Status = 'Prepare'";
+                                      FROM [InternShop].[dbo].[Order] o";
 
                     orderList = (List<Order>)await connection.QueryAsync<Order>(order);
                 }
@@ -310,7 +309,7 @@ namespace CameraRepository.Repositories
                                       ,[Status] = '{orderDetail.Status}'
                                       ,[UpdatedBy] = {Convert.ToInt32(userId)}
                                       ,[UpdatedDate] = GETDATE()
-                                    WHERE OrderId = {orderDetail.OrderId}";
+                                    WHERE OrderId = {orderDetail.OrderId} AND CameraId = {orderDetail.CameraId}";
                         var parameters = new { OrderId = orderId };
                         connection.Execute(updateOrderQuery, parameters);
                     }                    
@@ -319,6 +318,24 @@ namespace CameraRepository.Repositories
             catch (Exception ex)
             {
                 throw new Exception(ex.Message);
+            }
+        }
+
+        public void UpdateOrderStatus(int orderId, string status)
+        {
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(_configuration.GetConnectionString("InternShop")))
+                {
+                    var updateOrderQuery = $@"UPDATE [dbo].[Order]
+                                              SET [Status] = '{status}'
+                                              WHERE OrderId = {orderId}";
+                    connection.Execute(updateOrderQuery);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex);
             }
         }
     }

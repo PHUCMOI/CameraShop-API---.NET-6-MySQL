@@ -15,7 +15,7 @@ namespace CameraAPI.Controllers
         }
 
         [HttpPost]
-        [Route("PostLoginDetails")]
+        [Route("login")]
         public Task<IActionResult> PostLoginDetails(string username, string password)
         {
             try

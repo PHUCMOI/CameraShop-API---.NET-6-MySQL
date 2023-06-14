@@ -5,6 +5,6 @@ namespace CameraService.Services.IRepositoryServices
 {
     public interface IPayPalService
     {
-        Task<PayPalPayment> CreatePaymentUrl(PaymentInformationModel model);
+        Task<PayPalPayment> CreatePaymentUrl(PaymentInformationModel model, decimal? delivery, decimal? coupon);
     }
 }

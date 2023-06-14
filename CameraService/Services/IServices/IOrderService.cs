@@ -11,5 +11,6 @@ namespace CameraService.Services.IRepositoryServices
         Task<OrderResponsePayPal> Create(OrderRequest order, List<CameraResponse> camera, string userID, decimal? delivery = null, decimal? coupon = null);
         Task<bool> Update(OrderRequest order, string userId, int orderId);
         Task<bool> DeleteAsync(int orderID);
+        Task UpdateOrderStatus(int orderId, string status);
     }
 }

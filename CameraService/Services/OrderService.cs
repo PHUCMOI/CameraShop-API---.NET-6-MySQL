@@ -8,6 +8,7 @@ using CameraService.Services.IServices;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Microsoft.Extensions.Logging;
 using PayPal.v1.Payments;
+using System.Net.WebSockets;
 using static Azure.Core.HttpHeader;
 
 namespace CameraService.Services
@@ -126,7 +127,7 @@ namespace CameraService.Services
                         orderId = await _orderRepository.CreateNewOrder(orderRequest, camera, userID, orderPrice); // Add to DB
 
                         // Create paypal link
-                        var payment = await _payPalService.CreatePaymentUrl(CreatePaymentModel(orderRequest, camera, Convert.ToInt32(orderId), orderPrice));
+                        var payment = await _payPalService.CreatePaymentUrl(CreatePaymentModel(orderRequest, camera, Convert.ToInt32(orderId), orderPrice), delivery, coupon);
 
                         var response = new OrderResponsePayPal
                         {
@@ -143,12 +144,8 @@ namespace CameraService.Services
                         return response;
                     }
                 }
-                else
-                {
-                    throw new Exception("orderResquest is null");
-                }
-
-                return null;
+                
+                throw new Exception("orderResquest is null");
             }
             catch (Exception ex)
             {
@@ -190,15 +187,17 @@ namespace CameraService.Services
             throw new Exception("orderId must greater than 0");
         }        
 
-        public async Task<bool> Update(OrderRequest order, string userId, int orderId) // sửa -> check thanh toán sửa status 
+        public async Task<bool> Update(OrderRequest order, string userId, int orderId) 
         {
             decimal totalPrice = 0;
+            var oldOrder = _orderRepository.GetOrderById(orderId);
             if (order != null)
-            {                
-                foreach(var item in order.OrderDetails)
+            {      
+                for (int i = 0;i < order.OrderDetails.Count; i++)
                 {
-                    totalPrice += item.Quantity.Value * item.Camera.Price.Value;
-                }    
+                    totalPrice += order.OrderDetails[i].Quantity.Value * oldOrder.Result.OrderDetails[i].Camera.Price.Value;
+                }  
+
                 var orderDetail = await _orderRepository.GetById(orderId);
                 if (orderDetail != null)
                 {
@@ -229,7 +228,7 @@ namespace CameraService.Services
         {
             var orderList = orders.ToList();
             var count = orderList.Count;
-            var pageSize = 3;
+            var pageSize = 5;
             var totalPage = (int)Math.Ceiling((decimal)count / pageSize);
             if (pageNumber == 0) pageNumber = 1;
 
@@ -242,6 +241,15 @@ namespace CameraService.Services
             };
 
             return new List<PaginationOrderResponse> { paginationResponse };
+        }
+
+        public async Task UpdateOrderStatus(int orderId, string status)
+        {
+
+            if (orderId != null)
+            {
+                _orderRepository.UpdateOrderStatus(orderId, status);
+            }
         }
     }
 }

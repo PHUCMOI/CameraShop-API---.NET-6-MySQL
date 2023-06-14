@@ -45,7 +45,7 @@ namespace CameraService.Services
                     return orderDetail;
                 }
             }
-            return null;
+            throw new Exception();
         }
 
         public Task<bool> Update(OrderDetail orderDetail)

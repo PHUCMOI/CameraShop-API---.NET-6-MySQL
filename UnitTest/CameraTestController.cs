@@ -49,7 +49,7 @@ namespace UnitTest
 
             var cameraResponseList = MapCameraToCameraResponse(cameraList);
 
-            _cameraServiceMock.Setup(x => x.GetCameraByLINQ(pageNumber, null, null, null, null, null, null, null))
+            _cameraServiceMock.Setup(x => x.GetCameraByLINQ(pageNumber, null, null, null, null, null, null))
                 .ReturnsAsync(MapCameraResponse(cameraResponseList, pageNumber));
 
             var camerasController = new CamerasController(_cameraServiceMock.Object,
@@ -58,7 +58,7 @@ namespace UnitTest
                 _warehouseCategoryServiceMock.Object);
 
             // Act
-            var result = await camerasController.GetCameraByLINQ(pageNumber, null, null, null, null, null, null, null);
+            var result = await camerasController.GetCameraByLINQ(pageNumber, null, null, null, null, null, null);
 
             // Assert
             var actionResult = Assert.IsType<ActionResult<PaginationCameraResponse>>(result);
@@ -121,7 +121,7 @@ namespace UnitTest
 
             var cameraResponseList = MapCameraToCameraResponse(cameraList);
 
-            _cameraServiceMock.Setup(x => x.GetCameraBySQL(pageNumber, null, null, null, null, null, null, null))
+            _cameraServiceMock.Setup(x => x.GetCameraBySQL(pageNumber, null, null, null, null, null, null))
                 .ReturnsAsync(MapCameraResponse(cameraResponseList, pageNumber));
 
             var _camerasController = new CamerasController(_cameraServiceMock.Object,
@@ -129,7 +129,7 @@ namespace UnitTest
                     _warehouseCameraServiceMock.Object,
                     _warehouseCategoryServiceMock.Object);
             // Act
-            var result = await _camerasController.GetCameraByRawQuery(pageNumber, null, null, null, null, null, null, null);
+            var result = await _camerasController.GetCameraByRawQuery(pageNumber, null, null, null, null, null, null);
 
             // Assert
             var actionResult = Assert.IsType<ActionResult<List<PaginationCameraResponse>>>(result);
@@ -215,8 +215,6 @@ namespace UnitTest
 
             _cameraServiceMock.Verify(x => x.Update(newCamera, "1", 1), Times.Once);
         }
-
-
 
         // Fake Data
         private async Task<List<Camera>> GetTestCameras()
