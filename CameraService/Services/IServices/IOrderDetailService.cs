@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CameraService.Services.IRepositoryServices
+namespace CameraAPI.Services.Interfaces
 {
     public interface IOrderDetailService
     {

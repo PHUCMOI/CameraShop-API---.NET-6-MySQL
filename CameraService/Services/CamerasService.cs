@@ -11,21 +11,22 @@ using PayPal.v1.Orders;
 
 namespace CameraAPI.Services
 {
-    public class CameraService : ICameraService
+    public class CamerasService : ICameraService
     {
         private IUnitOfWork _unitOfWork;
-        private readonly ICameraRepository _cameraRepository;
 
+        private readonly ICameraRepository _cameraRepository;
         private readonly ICategoryService _categoryService;
         private readonly IWarehouseCameraService _warehouseCameraService;
         private readonly IWarehouseCategoryService _warehouseCategoryService;
 
         private readonly IAutoMapperService _autoMapperService;
+        private ILogger<CamerasService> _logger;
 
-        private ILogger<CameraService> _logger;
-
-        public CameraService(IUnitOfWork unitOfWork, ICategoryService categoryService, IWarehouseCameraService warehouseCameraService,
-            IWarehouseCategoryService warehouseCategoryService, ICameraRepository cameraRepository, ILogger<CameraService> logger,
+        public CamerasService(IUnitOfWork unitOfWork, ICategoryService categoryService, 
+            IWarehouseCameraService warehouseCameraService,
+            IWarehouseCategoryService warehouseCategoryService, 
+            ICameraRepository cameraRepository, ILogger<CamerasService> logger,
             IAutoMapperService autoMapperService) 
         {
             _unitOfWork = unitOfWork;
@@ -70,24 +71,23 @@ namespace CameraAPI.Services
             return false;
         }    
 
-        public async Task<bool> DeleteAsync(int CameraID)
+        public Task<bool> DeleteAsync(int cameraID)
         {
-            if(CameraID > 0)
+            if(cameraID > 0)
             {
-                var Camera = await _unitOfWork.Cameras.GetById(CameraID);
-                if (Camera != null)
+                var camera = _cameraRepository.Delete(cameraID);
+                if (camera)
                 {
-                    _unitOfWork.Cameras.Delete(Camera);
                     var result = _unitOfWork.Save();
-                    if (result > 0) return true;
+                    if (result == 0) return Task.FromResult(true);
                 }
             }
-            return false;
+            return Task.FromResult(false);
         }
 
         public async Task<List<CameraResponse>> GetAllCamera()
         {
-            var cameraList = await _unitOfWork.Cameras.GetAll();
+            var cameraList = await _cameraRepository.GetCameraList();
             var categories = await _categoryService.GetAllCategory();
             var cameraResponseList = _autoMapperService.MapList<Camera, CameraResponse>(cameraList);
 
@@ -126,11 +126,11 @@ namespace CameraAPI.Services
 
         public async Task<List<PaginationCameraResponse>> GetCameraByLINQ(int pageNumber, int? categoryID = null,
             string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null,
-            string? FilterType = null, int? quantity = null)
+            string? filterType = null)
         {
             try
             {
-                var cameras = await _cameraRepository.GetAll();
+                var cameras = await _cameraRepository.GetCameraList();
                 var categories = await _categoryService.GetAllCategory();
 
                 var shopQuery = from camera in cameras
@@ -230,16 +230,21 @@ namespace CameraAPI.Services
                 }
                 else if (maxPrice.HasValue || minPrice.HasValue)
                 {
-                    if (!string.IsNullOrEmpty(FilterType) && (maxPrice.HasValue || minPrice.HasValue))
+                    if (!string.IsNullOrEmpty(filterType) && (maxPrice.HasValue || minPrice.HasValue))
                     {
                         decimal? price = maxPrice.HasValue ? maxPrice : minPrice;
-                        result = (IQueryable<CameraQueryResult>)await CheckFilterTypeAsync(result, FilterType, price);
+                        switch (filterType)
+                        {
+                            case "lte":
+                                result = result.Where(p => p.Price <= price);
+                                break;
+                            case "gte":
+                                result = result.Where(p => p.Price >= price);
+                                break;
+                            default:
+                                break;
+                        }
                     }
-                }
-
-                if (quantity.HasValue)
-                {
-                    result = result.Where(p => p.Quantity == quantity.Value);
                 }
 
                 var products = result
@@ -251,6 +256,7 @@ namespace CameraAPI.Services
                     .Where(pair => pair.Category != null)
                     .Select(pair => new CameraResponse
                     {
+                        CameraID = pair.Camera.CameraId,
                         CameraName = pair.Camera.CameraName,
                         Brand = pair.Camera.Brand,
                         Price = pair.Camera.Price,
@@ -267,67 +273,58 @@ namespace CameraAPI.Services
             }
             catch (Exception ex)
             {
-                _logger.LogInformation(ex.ToString());
-                return null;
+                _logger.LogError(ex.ToString());
+                throw new Exception("Get failed" + ex.Message);
             }
         }
 
-        private async Task<List<CameraQueryResult>> CheckFilterTypeAsync(IEnumerable<CameraQueryResult> products, string filter, decimal? price = null)
-        {
-            List<CameraQueryResult> filteredProducts = products.ToList();
-
-            switch (filter)
-            {
-                case "lte":
-                    filteredProducts = filteredProducts.Where(p => p.Price <= price).ToList();
-                    break;
-                case "gte":
-                    filteredProducts = filteredProducts.Where(p => p.Price >= price).ToList();
-                    break;
-                default:
-                    break;
-            }
-
-            return filteredProducts;
-        }
 
         public async Task<CameraResponseID> GetIdAsync(int cameraId)
         {
-            if( cameraId > 0 )
+            if (cameraId > 0 )
             {
-                var Camera = await _cameraRepository.GetById(cameraId);
-                var category = await _categoryService.GetIdAsync((int)Camera.CategoryId);
-                if (Camera != null)
+                var camera = await _cameraRepository.GetById(cameraId);
+                if (camera != null)
                 {
-                    var cameraResponse = _autoMapperService.Map<Camera, CameraResponseID>(Camera);
-                    cameraResponse.CategoryName = category.Name;
-                    return cameraResponse;
-                }    
+                    if (camera.IsDelete == true)
+                    {
+                        return null;
+                    }
+                    else
+                    {
+                        var category = await _categoryService.GetIdAsync((int)camera.CategoryId);
+                        var cameraResponse = _autoMapperService.Map<Camera, CameraResponseID>(camera);
+                        if (category != null)
+                            cameraResponse.CategoryName = category.Name;
+                        else
+                            cameraResponse.CategoryName = "N/A";
+                        return cameraResponse;
+                    }
+                }
             }
-            return null;
+            throw new Exception();
         }
 
-        public async Task<bool> Update(CameraResponse cameraResponse, string UserID, int id)
+        public async Task<bool> Update(CameraPostRequest cameraRequest, string UserID, int id)
         {
-            if(cameraResponse != null)
+            if(cameraRequest != null)
             {
                 var cameraDetail = await _unitOfWork.Cameras.GetById(id);
-                var category = await _categoryService.GetIdAsync((int)cameraDetail.CategoryId);
 
                 if (cameraDetail != null)
                 {
-                    cameraDetail.Name = cameraResponse.CameraName;
-                    cameraDetail.Description = cameraResponse.Description;
+                    cameraDetail.Name = cameraRequest.Name;
+                    cameraDetail.Description = cameraRequest.Description;
                     cameraDetail.IsDelete = false;
                     cameraDetail.UpdatedDate = DateTime.Now;
-                    cameraDetail.CreatedDate = DateTime.Now;
-                    cameraDetail.CreatedBy = Convert.ToInt16(UserID);
+                    cameraDetail.CreatedDate = cameraDetail.CreatedDate;
+                    cameraDetail.CreatedBy = cameraDetail.CreatedBy;
                     cameraDetail.UpdatedBy = Convert.ToInt16(UserID);
-                    cameraDetail.Brand = cameraResponse.Brand;
-                    cameraDetail.CategoryId = category.CategoryId;
-                    cameraDetail.Img = cameraResponse.Img;
-                    cameraDetail.Price = cameraResponse.Price;
-                    cameraDetail.Quantity = cameraResponse.Quantity;
+                    cameraDetail.Brand = cameraRequest.Brand;
+                    cameraDetail.CategoryId = cameraRequest.CategoryId;
+                    cameraDetail.Img = cameraRequest.Img;
+                    cameraDetail.Price = cameraRequest.Price;
+                    cameraDetail.Quantity = cameraRequest.Quantity;
 
                     _unitOfWork.Cameras.Update(cameraDetail);
                     var result = _unitOfWork.Save();
@@ -359,34 +356,34 @@ namespace CameraAPI.Services
             return new List<PaginationCameraResponse> { paginationResponse };
         }
 
-        public async Task<List<PaginationCameraResponse>> GetCameraBySQL(int pageNumber, int? categoryID = null, string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null, int? quantity = null)
+        public async Task<List<PaginationCameraResponse>> GetCameraBySQL(int pageNumber, int? categoryID = null, string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? filterType = null)
         {
             try
             {
-                var cameras = await _cameraRepository.GetBySQL(pageNumber, categoryID, name, brand, minPrice, maxPrice, FilterType, quantity);
+                var cameras = await _cameraRepository.GetBySQL(pageNumber, categoryID, name, brand, minPrice, maxPrice, filterType);
                 
                 return MapCameraResponse(cameras, pageNumber);                
             }
             catch (Exception ex)
             {
                 _logger.LogInformation(ex.Message, ex);                
-                return null;
+                throw new Exception(ex.Message);
             }
         }
 
         public async Task<List<PaginationCameraResponse>> GetFromStoredProcedure(int pageNumber, int? categoryID = null, string? name = null,
-        string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null, int? quantity = null)
+        string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? filterType = null)
         {
             try
             {
-                var cameras = await _cameraRepository.GetByStoredProcedure(pageNumber, categoryID, name, brand, minPrice, maxPrice, FilterType,quantity);
+                var cameras = await _cameraRepository.GetByStoredProcedure(pageNumber, categoryID, name, brand, minPrice, maxPrice, filterType);
 
                 return MapCameraResponse(cameras, pageNumber);
             }
             catch (Exception ex)
             {
                 _logger.LogInformation(ex.ToString());
-                return null;
+                throw new Exception(ex.Message);
             }
         }
     }

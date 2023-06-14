@@ -4,6 +4,6 @@ namespace CameraCore.IRepository
 {
     public interface ILoginRepository
     {
-        UserModel CheckLogin(string name);
+        UserModel CheckLogin(string name, string password);
     }
 }

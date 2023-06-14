@@ -1,5 +1,6 @@
 ﻿using CameraAPI.Models;
 using CameraAPI.Repositories;
+using CameraAPI.Services.Interfaces;
 using CameraCore.IRepository;
 using CameraService.Services.IRepositoryServices;
 using Microsoft.EntityFrameworkCore;
@@ -44,7 +45,7 @@ namespace CameraService.Services
                     return orderDetail;
                 }
             }
-            return null;
+            throw new Exception();
         }
 
         public Task<bool> Update(OrderDetail orderDetail)

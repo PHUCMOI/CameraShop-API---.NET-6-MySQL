@@ -2,6 +2,7 @@
 using CameraAPI.Controllers;
 using CameraAPI.Models;
 using CameraAPI.Services.Interfaces;
+using CameraCore.Models;
 using CameraService.Services.IRepositoryServices;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -27,7 +28,7 @@ namespace UnitTest
         public async Task GetAllCamera_Return_Default()
         {
             var cameraList = await GetTestCameras();
-            _cameraServiceMock.Setup(x => x.GetAllCamera()).ReturnsAsync(cameraList);
+            //_cameraServiceMock.Setup(x => x.GetAllCamera()).ReturnsAsync(cameraList);
             var _camerasController = new CamerasController(_cameraServiceMock.Object,
                     _categoryServiceMock.Object,
                     _warehouseCameraServiceMock.Object,
@@ -48,7 +49,7 @@ namespace UnitTest
 
             var cameraResponseList = MapCameraToCameraResponse(cameraList);
 
-            _cameraServiceMock.Setup(x => x.GetCameraByLINQ(pageNumber, null, null, null, null, null, null, null))
+            _cameraServiceMock.Setup(x => x.GetCameraByLINQ(pageNumber, null, null, null, null, null, null))
                 .ReturnsAsync(MapCameraResponse(cameraResponseList, pageNumber));
 
             var camerasController = new CamerasController(_cameraServiceMock.Object,
@@ -57,7 +58,7 @@ namespace UnitTest
                 _warehouseCategoryServiceMock.Object);
 
             // Act
-            var result = await camerasController.GetCameraByLINQ(pageNumber, null, null, null, null, null, null, null);
+            var result = await camerasController.GetCameraByLINQ(pageNumber, null, null, null, null, null, null);
 
             // Assert
             var actionResult = Assert.IsType<ActionResult<PaginationCameraResponse>>(result);
@@ -85,8 +86,8 @@ namespace UnitTest
 
             var cameraResponseList = MapCameraToCameraResponse(cameraList);
 
-            _cameraServiceMock.Setup(x => x.GetFromStoredProcedure(pageNumber, null, null, null, null, null, null))
-                .ReturnsAsync(MapCameraResponse(cameraResponseList, pageNumber)); 
+            /*_cameraServiceMock.Setup(x => x.GetFromStoredProcedure(pageNumber, null, null, null, null, null, null))
+                .ReturnsAsync(MapCameraResponse(cameraResponseList, pageNumber));*/ 
            
             var _camerasController = new CamerasController(_cameraServiceMock.Object,
                     _categoryServiceMock.Object,
@@ -120,7 +121,7 @@ namespace UnitTest
 
             var cameraResponseList = MapCameraToCameraResponse(cameraList);
 
-            _cameraServiceMock.Setup(x => x.GetCameraBySQL(pageNumber, null, null, null, null, null, null, null))
+            _cameraServiceMock.Setup(x => x.GetCameraBySQL(pageNumber, null, null, null, null, null, null))
                 .ReturnsAsync(MapCameraResponse(cameraResponseList, pageNumber));
 
             var _camerasController = new CamerasController(_cameraServiceMock.Object,
@@ -128,7 +129,7 @@ namespace UnitTest
                     _warehouseCameraServiceMock.Object,
                     _warehouseCategoryServiceMock.Object);
             // Act
-            var result = await _camerasController.GetCameraByRawQuery(pageNumber, null, null, null, null, null, null, null);
+            var result = await _camerasController.GetCameraByRawQuery(pageNumber, null, null, null, null, null, null);
 
             // Assert
             var actionResult = Assert.IsType<ActionResult<List<PaginationCameraResponse>>>(result);
@@ -148,25 +149,18 @@ namespace UnitTest
         public async Task TestCreateNewCamera_Return_200()
         {
             // Arrange
-            var newCamera = new Camera
+            var newCamera = new CameraPostRequest
             {
-                CameraId = 1,
                 Name = "Sony Vip Pro",
                 Brand = "Sony",
                 CategoryId = 1,
                 Description = "description",
                 Img = "111",
                 Price = 1234,
-                Quantity = 1,
-                Sold = 1,
-                CreatedBy = 1,
-                CreatedDate = DateTime.Now,
-                UpdatedBy = 1,
-                UpdatedDate = DateTime.Now,
-                IsDelete = false
+                Quantity = 1
             };
 
-            _cameraServiceMock.Setup(x => x.Create(newCamera))
+            _cameraServiceMock.Setup(x => x.Create(newCamera, "1"))
                 .ReturnsAsync(true);
 
             var camerasController = new CamerasController(_cameraServiceMock.Object,
@@ -183,32 +177,25 @@ namespace UnitTest
             var cameraDetail = Assert.IsType<bool>(okResult.Value);
 
             Assert.True(cameraDetail);
-            _cameraServiceMock.Verify(x => x.Create(newCamera), Times.Once);
+            _cameraServiceMock.Verify(x => x.Create(newCamera, "1"), Times.Once);
         }
 
         [Fact]
         public async Task TestUpdateCamera_ReturnsOkWithTrueValue()
         {
             // Arrange
-            var camera = new Camera
+            var newCamera = new CameraPostRequest
             {
-                CameraId = 1,
                 Name = "Sony Vip Pro",
                 Brand = "Sony",
                 CategoryId = 1,
                 Description = "description",
                 Img = "111",
                 Price = 1234,
-                Quantity = 1,
-                Sold = 1,
-                CreatedBy = 1,
-                CreatedDate = DateTime.Now,
-                UpdatedBy = 1,
-                UpdatedDate = DateTime.Now,
-                IsDelete = false
+                Quantity = 1
             };
 
-            _cameraServiceMock.Setup(x => x.Update(camera))
+            _cameraServiceMock.Setup(x => x.Update(newCamera, "1", 1))
                 .ReturnsAsync(true);
 
             var camerasController = new CamerasController(_cameraServiceMock.Object,
@@ -217,7 +204,7 @@ namespace UnitTest
                 _warehouseCategoryServiceMock.Object);
 
             // Act
-            var result = await camerasController.PutCamera(camera);
+            var result = await camerasController.PutCamera(newCamera, 1);
 
             // Assert
             Assert.IsType<OkObjectResult>(result);
@@ -226,10 +213,8 @@ namespace UnitTest
             Assert.IsType<bool>(actionResult.Value);
             Assert.True((bool)actionResult.Value);
 
-            _cameraServiceMock.Verify(x => x.Update(camera), Times.Once);
+            _cameraServiceMock.Verify(x => x.Update(newCamera, "1", 1), Times.Once);
         }
-
-
 
         // Fake Data
         private async Task<List<Camera>> GetTestCameras()

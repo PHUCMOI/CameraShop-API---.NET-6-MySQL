@@ -22,16 +22,16 @@ namespace CameraService.Services
             _distributedCache = distributedCache;
         }
 
-        public string Login(string username)
+        public string Login(string username, string password)
         {
             try
             {
                 if (username != null)
                 {
-                    var resultLoginCheck = _loginRepository.CheckLogin(username);
+                    var resultLoginCheck = _loginRepository.CheckLogin(username, password);
                     if (resultLoginCheck == null)
                     {
-                        return null;
+                        throw new Exception();
                     }
                     else
                     {
@@ -60,7 +60,7 @@ namespace CameraService.Services
 
                         // Lưu trữ token trong phiên (session)
                         //HttpContext.Session.SetString("Token", _userData.AccessToken);
-                        string cacheKey = "user:token:" + username;
+                        string cacheKey = username;
                         byte[] tokenBytes = Encoding.UTF8.GetBytes(AccessToken);
 
                         var cacheOptions = new DistributedCacheEntryOptions
@@ -69,7 +69,6 @@ namespace CameraService.Services
                         };
 
                         _distributedCache.SetAsync(cacheKey, tokenBytes, cacheOptions);
-
 
                         return AccessToken;
                     }

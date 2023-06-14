@@ -1,4 +1,5 @@
-﻿using CameraAPI.AppModel;
+﻿using AutoMapper.Internal;
+using CameraCore.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,8 +8,8 @@ using System.Threading.Tasks;
 
 namespace CameraService.Services.IServices
 {
-    public interface ILoginService
+    public interface IMailService
     {
-        string Login(string username, string password);
+        Task SendEmailAsync(MailRequest mailRequest);
     }
 }

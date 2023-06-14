@@ -47,6 +47,7 @@
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="6.0.13" />
     <PackageReference Include="Moq" Version="4.18.4" />
     <PackageReference Include="NEST" Version="7.17.5" />
+    <PackageReference Include="NETCore.MailKit" Version="2.1.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.29.0" />
 	 <PackageReference Include="PayPal" Version="2.0.0-rc2" />

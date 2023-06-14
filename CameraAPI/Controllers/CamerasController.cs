@@ -6,6 +6,7 @@ using CameraAPI.AppModel;
 using CameraService.Services.IRepositoryServices;
 using CameraCore.Models;
 using System.Security.Claims;
+using Nest;
 
 namespace CameraAPI.Controllers
 {
@@ -35,64 +36,65 @@ namespace CameraAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<List<CameraResponse>>> GetCameras()
         {
-            var CameraList = await _camService.GetAllCamera();
-            if (CameraList == null)
+            var cameraList = await _camService.GetAllCamera();
+            if (cameraList == null)
             {
                 return NotFound();
             }
-            return Ok(CameraList);
+            return Ok(cameraList);
         }
 
         // GET: api/Cameras/5
         [HttpGet("{id}")]
         public async Task<ActionResult<CameraResponseID>> GetCamera(int id)
         {
-            var CameraDetail = await _camService.GetIdAsync(id);
-            if (CameraDetail != null)
+            var cameraDetail = await _camService.GetIdAsync(id);
+            if (cameraDetail != null)
             {
-                return Ok(CameraDetail);
+                return Ok(cameraDetail);
             }
-            return BadRequest();
+            return BadRequest("This camera has been deleted");
         }   
 
         [HttpGet("linq")]
         public async Task<ActionResult<PaginationCameraResponse>> GetCameraByLINQ(int pageNumber, int? categoryID = null, 
-            string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null, int? quantity = null)
+            string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? filterType = null)
         {
-            var CameraDetail = await _camService.GetCameraByLINQ(pageNumber, categoryID, name, brand, minPrice, maxPrice, FilterType, quantity);
-            if (CameraDetail != null)
+            var cameraDetail = await _camService.GetCameraByLINQ(pageNumber, categoryID, name, brand, minPrice, maxPrice, filterType);
+            if (cameraDetail != null)
             {
-                return Ok(CameraDetail);
+                return Ok(cameraDetail);
             }
             return BadRequest();
         }
 
         [HttpGet("raw-query")]
         public async Task<ActionResult<List<PaginationCameraResponse>>> GetCameraByRawQuery(int pageNumber, int? categoryID = null, string? name = null,
-            string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null, int? quantity = null)
+            string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? filterType = null)
         {
-            var CameraDetail = await _camService.GetCameraBySQL(pageNumber, categoryID, name, brand, minPrice, maxPrice, FilterType, quantity);
-            if (CameraDetail != null)
+            var cameraDetail = await _camService.GetCameraBySQL(pageNumber, categoryID, name, brand, minPrice, maxPrice, filterType);
+            if (cameraDetail != null)
             {
-                return Ok(CameraDetail);
+                return Ok(cameraDetail);
             }
             return BadRequest();
         }
         
         [HttpGet("stored-procedure")]
         public async Task<ActionResult<List<PaginationCameraResponse>>> GetFromStoredProcedure(int pageNumber, int? categoryID = null, string? name = null,
-            string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null, int? quantity = null)
+            string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? filterType = null)
         {
             try
             {
-                var CameraDetail = await _camService.GetFromStoredProcedure(pageNumber, categoryID, name, brand, minPrice, maxPrice, FilterType, quantity);
-                if (CameraDetail != null)
+                var cameraDetail = await _camService.GetFromStoredProcedure(pageNumber, categoryID, name, brand, minPrice, maxPrice, filterType);
+                if (cameraDetail != null)
                 {
-                    return Ok(CameraDetail);
+                    return Ok(cameraDetail);
                 }
             }
             catch (Exception ex)
-            {                
+            {
+                throw new Exception(ex.Message);
             }
             return BadRequest();
         }
@@ -100,53 +102,70 @@ namespace CameraAPI.Controllers
         // PUT: api/Cameras/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutCamera(CameraResponse camera, int id)
+        public async Task<IActionResult> PutCamera(CameraPostRequest camera, int id)
         {
             try
             {
                 var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
                 var nameIdentifierValue = userIdentity.Claims.ToList();
-                if (camera != null)
+                if (nameIdentifierValue[4].Value == "admin")
                 {
-                    var CameraDetails = await _camService.Update(camera, nameIdentifierValue[3].Value, id);
-                    if (CameraDetails)
+                    if (camera != null)
                     {
-                        return Ok(CameraDetails);
+                        var cameraDetails = await _camService.Update(camera, nameIdentifierValue[3].Value, id);
+                        if (cameraDetails)
+                        {
+                            return Ok(cameraDetails);
+                        }
                     }
+                    return BadRequest("camera is null");
                 }
-                return BadRequest();
+                return BadRequest("This user can not use this endpoint");
             }
-            catch (Exception ex)            {
+            catch (Exception ex) {
 
-                return BadRequest();
+                return BadRequest(ex.Message);
             }
         }
         
         // POST: api/Cameras
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Camera>> PostCamera(CameraPostRequest cameraPostRequest)
+        public async Task<ActionResult<bool>> PostCamera(CameraPostRequest cameraPostRequest)
         {
             var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
             var nameIdentifierValue = userIdentity.Claims.ToList();
-            var CameraDetail = await _camService.Create(cameraPostRequest, nameIdentifierValue[3].Value);
-            if (CameraDetail)
+            if (nameIdentifierValue[4].Value == "admin")
             {
-                return Ok(CameraDetail);
+                if (cameraPostRequest != null)
+                {
+                    var cameraDetails = await _camService.Create(cameraPostRequest, nameIdentifierValue[3].Value);
+                    if (cameraDetails)
+                    {
+                        return Ok(cameraDetails);
+                    }
+                }
+                    return BadRequest("camera is null");
             }
-            return BadRequest();
+            return BadRequest("This user can not use this endpoint");
         }
 
         // DELETE: api/Cameras/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCamera(int id)
         {
-            var CameraDelete = await _camService.DeleteAsync(id);
-            if (CameraDelete)
+            var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
+            var nameIdentifierValue = userIdentity.Claims.ToList();
+            if (nameIdentifierValue[4].Value == "admin")
             {
-                return Ok(CameraDelete);
-            }   
-            return BadRequest();    
+                var cameraDelete = await _camService.DeleteAsync(id);
+                if (cameraDelete)
+                {
+                    return Ok(cameraDelete);
+                }
+                return BadRequest();
+            }
+            return BadRequest("This user can not use this endpoint");
         }
     }
 }

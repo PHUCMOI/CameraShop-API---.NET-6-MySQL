@@ -8,8 +8,8 @@ using System.Security.Claims;
 
 namespace CameraAPI.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController, Authorize]
+    [Route("api/order")]
+    [ApiController]
     public class OrdersController : ControllerBase
     {
         private readonly IOrderService _orderService;
@@ -21,22 +21,11 @@ namespace CameraAPI.Controllers
             _orderService = orderService;
         }
 
-        [HttpGet("random")]
-        public async Task<ActionResult<OrderRequestPayPal>> GetRandomOrder()
-        {
-            var order = await _orderService.GetRandomOrder();
-            if (order == null)
-            {
-                return NotFound();
-            }
-            return Ok(order);
-        }
-
         // GET: api/Orders
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<OrderResponse>>> GetOrders()
+        public async Task<ActionResult<IEnumerable<OrderRequestPayPal>>> GetOrders(int pageNumber)
         {
-            var orderList = await _orderService.GetAllOrder();
+            var orderList = await _orderService.GetAllOrder(pageNumber);
             if (orderList == null)
             {
                 return NotFound();
@@ -48,10 +37,10 @@ namespace CameraAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Order>> GetOrder(int id)
         {
-            var OrderDetail = await _orderService.GetIdAsync(id);
-            if (OrderDetail != null)
+            var orderDetail = await _orderService.GetIdAsync(id);
+            if (orderDetail != null)
             {
-                return Ok(OrderDetail);
+                return Ok(orderDetail);
             }
             return BadRequest();
         }
@@ -59,44 +48,50 @@ namespace CameraAPI.Controllers
         // PUT: api/Orders/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutOrder(Order order)
+        public async Task<IActionResult> PutOrder(OrderRequest order, int id)
         {
+            var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
+            var nameIdentifierValue = userIdentity.Claims.ToList();
             try
             {
-                if (order != null)
+                if (nameIdentifierValue[4].Value == "admin")
                 {
-                    var CameraDetails = await _orderService.Update(order);
-                    if (CameraDetails)
+
+                    if (order != null)
                     {
-                        return Ok(CameraDetails);
+                        var orderResponse = await _orderService.Update(order, nameIdentifierValue[3].Value, id);
+                        if (orderResponse)
+                        {
+                            return Ok(orderResponse);
+                        }
                     }
+                    return BadRequest("orderResponse is null");
                 }
-                return BadRequest();
+                return BadRequest("user can not use this endpoint");
             }
             catch (Exception ex)
             {
-
                 return BadRequest(ex.Message);
             }
         }
 
         [HttpPost("paypal")]
-        public async Task<ActionResult<OrderResponsePayPal>> PostOrderPayPal(PaymentInformationModel orderRequest, decimal? Delivery = null, decimal? Coupon = null)
+        public async Task<ActionResult<OrderResponsePayPal>> PostOrderPayPal(PaymentInformationModel orderRequest, decimal? delivery = null, decimal? coupon = null)
         {
             try
             {                
-                if (!Delivery.HasValue)
-                    Delivery = 0;
+                if (!delivery.HasValue)
+                    delivery = 0;
 
-                if (!Coupon.HasValue)
-                    Coupon = 0;
+                if (!coupon.HasValue)
+                    coupon = 0;
 
                 if (orderRequest != null) 
                 {
-                    orderRequest.Price = orderRequest.Price + orderRequest.Price * 10 / 100;
-                    orderRequest.Price = (decimal)(orderRequest.Price + Delivery - Coupon);
+                    orderRequest.Price = orderRequest.Price + orderRequest.Price * 10 / 100; // Tax = 10%
+                    orderRequest.Price = (decimal)(orderRequest.Price + delivery - coupon);
 
-                    var payment = await _paypalService.CreatePaymentUrl(orderRequest);
+                    var payment = await _paypalService.CreatePaymentUrl(orderRequest, (decimal)delivery, (decimal)coupon);
 
                     var response = new OrderResponsePayPal
                     {
@@ -112,7 +107,7 @@ namespace CameraAPI.Controllers
 
                     return new ActionResult<OrderResponsePayPal>(response);
                 }
-                return BadRequest();
+                return BadRequest("orderRequest is null");
             }
             catch (Exception ex) 
             {
@@ -122,39 +117,65 @@ namespace CameraAPI.Controllers
 
         // POST: api/Orders
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<OrderRequestPayPal>> PostOrder(CameraResponse camera, string Address, string Payment, decimal Quantity, string? Message = null)
+        [HttpPost("purchaseCamera")]
+        public async Task<ActionResult<OrderResponsePayPal>> PostOrder(List<CameraResponse> camera, string address, string payment, string? message = null, decimal? delivery = null, decimal? coupon = null)
         {
             var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
             var nameIdentifierValue = userIdentity.Claims.ToList();
-            var order = new OrderRequest()
+            if (nameIdentifierValue[4].Value == "admin")
             {
-                UserId = Convert.ToInt16(nameIdentifierValue[3].Value),
-                Username = nameIdentifierValue[2].Value,
-                Address = Address,
-                Payment = Payment,
-                Status = "Prepare",
-                Price = 0,
-                Message = Message
-            };
-            var orderDetail = await _orderService.Create(order, camera, nameIdentifierValue[3].Value, Quantity);
-            if (orderDetail)
-            {
-                return Ok(orderDetail);
+                var order = new OrderRequest()
+                {
+                    UserId = Convert.ToInt16(nameIdentifierValue[3].Value),
+                    Username = nameIdentifierValue[2].Value,
+                    Address = address,
+                    Payment = payment,
+                    Status = "Prepare",
+                    Price = 0,
+                    Message = message
+                };
+                var orderResponse = await _orderService.Create(order, camera, nameIdentifierValue[3].Value, delivery, coupon);
+                if (orderResponse != null)
+                {
+                    return Ok(orderResponse);
+                }
+                return BadRequest("orderResponse is null");
             }
-            return BadRequest();
+            return BadRequest("user can not use this endpoint");
         }
 
         // DELETE: api/Orders/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteOrder(int id)
         {
-            var orderDetail = await _orderService.DeleteAsync(id);
-            if (orderDetail)
+            var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
+            var nameIdentifierValue = userIdentity.Claims.ToList();
+            if (nameIdentifierValue[4].Value == "admin")
             {
-                return Ok(orderDetail);
+                var result = await _orderService.DeleteAsync(id);
+                if (result)
+                {
+                    return Ok(result);
+                }
+                return BadRequest("can not delete");
             }
-            return BadRequest();
+            return BadRequest("use can not use this endpoint");
+        }
+
+        [HttpGet("PaymentSuccess")]
+        public async Task<IActionResult> PaymentSuccess([FromQuery] int orderId)
+        {
+            await _orderService.UpdateOrderStatus(orderId, "Paid");
+
+            return Ok();
+        }
+
+        [HttpGet("PaymentFail")]
+        public async Task<IActionResult> PaymentFail([FromQuery] int orderId)
+        {
+            await _orderService.UpdateOrderStatus(orderId, "Prepare");
+
+            return Ok();
         }
     }
 }

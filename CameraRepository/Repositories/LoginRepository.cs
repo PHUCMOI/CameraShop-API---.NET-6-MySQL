@@ -18,10 +18,10 @@ namespace CameraRepository.Repositories
             _context = context;
         }
 
-        public UserModel CheckLogin(string name)
+        public UserModel CheckLogin(string name, string password)
         {
             var resultLoginCheck = _context.Users
-                    .Where(e => e.Username == name)
+                    .Where(e => e.Username == name && e.Password == password)
                     .FirstOrDefault();
 
             if(resultLoginCheck != null)
@@ -40,7 +40,7 @@ namespace CameraRepository.Repositories
             }
             else
             {
-                return null;
+                throw new Exception("username or password is not correct");
             }    
         }
     }

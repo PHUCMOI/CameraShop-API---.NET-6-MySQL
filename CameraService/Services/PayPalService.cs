@@ -4,6 +4,10 @@ using System.Net;
 using CameraService.Services.IRepositoryServices;
 using Microsoft.Extensions.Configuration;
 using CameraCore.Models;
+using System.Net.WebSockets;
+using static System.Net.WebRequestMethods;
+using Microsoft.AspNetCore.Http;
+using CameraAPI.AppModel;
 
 namespace CameraService.Services
 {
@@ -22,10 +26,42 @@ namespace CameraService.Services
             public string Message;
         }
 
-        public async Task<PayPalPayment> CreatePaymentUrl(PaymentInformationModel model)
-        {           
-            var paypalOrderId = DateTime.Now.Ticks;
-            var urlCallBack = _configuration["PaymentCallBack:ReturnUrl"];
+        public async Task<PayPalPayment> CreatePaymentUrl(PaymentInformationModel model, decimal? delivery, decimal? coupon)
+        {
+            var paypalOrderId = model.OrderId;
+            var returnUrl = $"{_configuration["PaymentCallBack:ReturnUrl"]}/api/order/PaymentSuccess"; 
+            var cancelUrl = $"{_configuration["PaymentCallBack:ReturnUrl"]}/api/order/PaymentFail";
+
+            if (!delivery.HasValue)
+                delivery = 0;
+
+            if (!coupon.HasValue)
+                coupon = 0;
+
+            var itemList = new ItemList()
+            {
+                Items = new List<Item>()
+            };
+
+            decimal total = 0;
+            foreach (var item in model.OrderDetails)
+            {
+                itemList.Items.Add(new Item()
+                {
+                    Name = item.Camera.Name,
+                    Currency = "USD",
+                    Price = item.Camera.Price.ToString(),
+                    Quantity = item.Quantity.ToString(),
+                    Sku = "sku",
+                    Tax = "0"
+                });
+                decimal c = Math.Round(item.Camera.Price.Value * item.Quantity.Value);
+                total += c;
+            }
+
+            //total = total + total * 10 / 100; // Tax = 10%
+            //total = (decimal)(total + delivery - coupon);
+
             var payment = new PayPal.v1.Payments.Payment()
             {
                 Intent = "sale",
@@ -35,32 +71,16 @@ namespace CameraService.Services
                     {
                         Amount = new Amount()
                         {
-                            Total = model.Price.ToString(),
+                            Total = total.ToString(),
                             Currency = "USD",
                             Details = new AmountDetails
                             {
                                 Tax = "0",
                                 Shipping = "0",
-                                Subtotal = model.Price.ToString()
+                                Subtotal = total.ToString()
                             }
                         },
-                        ItemList = new ItemList()
-                        {
-                            Items = new List<Item>()
-                            {
-                                new Item()
-                                {
-                                    Name = " | Order: " + model.OrderDetails[0].Camera.Name,
-                                    Currency = "USD",
-                                    Price = model.Price.ToString(),
-                                    Quantity = 1.ToString(),
-                                    Sku = "sku",
-                                    Tax = "0",
-                                    Url = "https://www.code-mega.com" // Url detail of Item
-                                }
-
-                            }
-                        },
+                        ItemList = itemList,
                         Description = $"Invoice #{model.Message}",
                         InvoiceNumber = paypalOrderId.ToString()
                     }
@@ -68,9 +88,9 @@ namespace CameraService.Services
                 RedirectUrls = new RedirectUrls()
                 {
                     ReturnUrl =
-                        $"{urlCallBack}?payment_method=PayPal&success=1&order_id={paypalOrderId}",
+                       $"{returnUrl}?payment_method=PayPal&success=1&orderId={paypalOrderId}",
                     CancelUrl =
-                        $"{urlCallBack}?payment_method=PayPal&success=0&order_id={paypalOrderId}"
+                        $"{cancelUrl}?payment_method=PayPal&success=0&orderId={paypalOrderId}"
                 },
                 Payer = new Payer()
                 {
@@ -108,6 +128,7 @@ namespace CameraService.Services
             var result = response.Result<Payment>();
             using var links = result.Links.GetEnumerator();
 
+            
             while (links.MoveNext())
             {
                 var lnk = links.Current;
