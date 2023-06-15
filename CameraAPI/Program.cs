@@ -80,7 +80,7 @@ builder.Services.AddLogging(builder =>
     builder.AddConsole();
 });
 
-//builder.Services.AddDistributedMemoryCache();
+builder.Services.AddDistributedMemoryCache();
 
 // Session
 /*builder.Services.AddSession(options =>

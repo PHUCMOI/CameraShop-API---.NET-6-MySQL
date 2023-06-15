@@ -6,6 +6,7 @@ using CameraCore.Models;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using System.Data.SqlClient;
 
 namespace CameraRepository.Repositories
@@ -101,14 +102,17 @@ namespace CameraRepository.Repositories
             }
         }
 
-        public async Task<List<OrderRequestPayPal>> GetOrderList()
+        public async Task<List<OrderRequestPayPal>> GetOrderList(string? status = null)
         {
             try
             {
+                string query = default(string);
+                if (!status.IsNullOrEmpty())
+                    query += $"AND Status = '{status}'";
                 var orderList = new List<Order>();
                 using (SqlConnection connection = new SqlConnection(_configuration.GetConnectionString("InternShop")))
                 {
-                    var order = @"SELECT o.[OrderId]
+                    var order = $@"SELECT o.[OrderId]
                                           ,[UserId]
                                           ,[Username]
                                           ,[Address]
@@ -116,7 +120,8 @@ namespace CameraRepository.Repositories
                                           ,o.[Status]
                                           ,o.[Price]
                                           ,[Message]
-                                      FROM [InternShop].[dbo].[Order] o";
+                                      FROM [InternShop].[dbo].[Order] o
+                                      WHERE 1 = 1 {query}";
 
                     orderList = (List<Order>)await connection.QueryAsync<Order>(order);
                 }

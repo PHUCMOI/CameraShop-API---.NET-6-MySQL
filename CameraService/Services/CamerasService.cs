@@ -216,12 +216,12 @@ namespace CameraAPI.Services
 
                 if (!string.IsNullOrEmpty(name))
                 {
-                    result = result.Where(p => p.CameraName.Contains(name));
+                    result = result.Where(p => p.CameraName.Contains(name, StringComparison.OrdinalIgnoreCase));
                 }
 
                 if (!string.IsNullOrEmpty(brand))
                 {
-                    result = result.Where(p => p.Brand.Contains(brand));
+                    result = result.Where(p => p.Brand.Contains(brand, StringComparison.OrdinalIgnoreCase));
                 }
 
                 if (minPrice.HasValue && maxPrice.HasValue)
@@ -306,7 +306,7 @@ namespace CameraAPI.Services
         }
 
         public async Task<bool> Update(CameraPostRequest cameraRequest, string UserID, int id)
-        {
+            {
             if(cameraRequest != null)
             {
                 var cameraDetail = await _unitOfWork.Cameras.GetById(id);

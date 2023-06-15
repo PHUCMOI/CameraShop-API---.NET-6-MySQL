@@ -80,7 +80,7 @@ namespace CameraService.Services
             var user = await _userRepository.GetById(userId);
             if (user.IsDelete == true)
             {
-                throw new Exception();
+                return null;
             }
             var userResponse = _autoMapperService.Map<User, UserResponse>(user);
             return userResponse;
