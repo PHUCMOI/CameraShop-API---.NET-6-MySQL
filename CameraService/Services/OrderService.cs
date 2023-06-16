@@ -168,9 +168,9 @@ namespace CameraService.Services
             return Task.FromResult(false);
         }
 
-        public async Task<List<PaginationOrderResponse>> GetAllOrder(int pageNumber)
+        public async Task<List<PaginationOrderResponse>> GetAllOrder(int pageNumber, string? status = null)
         {
-            var orderList = await _orderRepository.GetOrderList();
+            var orderList = await _orderRepository.GetOrderList(status);
             return MapOrderResponse(orderList, pageNumber);
         }
 

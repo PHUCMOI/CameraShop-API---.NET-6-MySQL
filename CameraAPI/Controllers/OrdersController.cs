@@ -23,9 +23,9 @@ namespace CameraAPI.Controllers
 
         // GET: api/Orders
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<OrderRequestPayPal>>> GetOrders(int pageNumber)
+        public async Task<ActionResult<IEnumerable<OrderRequestPayPal>>> GetOrders(int pageNumber, string? status = null)
         {
-            var orderList = await _orderService.GetAllOrder(pageNumber);
+            var orderList = await _orderService.GetAllOrder(pageNumber, status);
             if (orderList == null)
             {
                 return NotFound();

@@ -13,7 +13,7 @@ namespace CameraService.Services
     public class LoginService : ILoginService
     {
         private readonly ILoginRepository _loginRepository;
-        private IDistributedCache _distributedCache;
+        private readonly IDistributedCache _distributedCache;
         private readonly IConfiguration _configuration;
         public LoginService(ILoginRepository loginRepository, IConfiguration configuration, IDistributedCache distributedCache)
         {
@@ -68,7 +68,7 @@ namespace CameraService.Services
                             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
                         };
 
-                        _distributedCache.SetAsync(cacheKey, tokenBytes, cacheOptions);
+                        _distributedCache.SetString(cacheKey, AccessToken, cacheOptions);
 
                         return AccessToken;
                     }

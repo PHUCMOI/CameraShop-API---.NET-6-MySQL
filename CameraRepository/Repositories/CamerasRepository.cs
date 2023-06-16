@@ -23,38 +23,36 @@ namespace CameraAPI.Repositories
             _configuration = configuration;
         }
 
-        private string CalculateSQLString(int? categoryID = null, string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null, int? quantity = null)
+        private string CalculateSQLString(int? categoryID = null, string name = null, string brand = null, decimal? minPrice = null, decimal? maxPrice = null, string FilterType = null, int? quantity = null)
         {
             string query = "WHERE 1 = 1";
             if (categoryID != null)
             {
-                query += " AND CategoryID = @CategoryID ";
+                query += " AND CategoryID = @CategoryID";
             }
-            if (name != null)
+            if (!string.IsNullOrEmpty(name))
             {
-                query += " AND Name LIKE '%' + @Name + '%'";
+                query += " AND CameraName LIKE '%' + @Name + '%'";
             }
-            if (brand != null)
+            if (!string.IsNullOrEmpty(brand))
             {
-                query += " AND Brand LIKE @Brand";
+                query += " AND Brand LIKE '%' + @Brand + '%'";
             }
             if (minPrice != null && maxPrice != null)
             {
                 query += " AND Price >= @MinPrice AND Price <= @MaxPrice";
             }
-            else
+            else if (FilterType == "lte")
             {
-                if (FilterType == "lte")
-                {
-                    query += " AND Price <= @Price";
-                }
-                else if (FilterType == "gte")
-                {
-                    query += " AND Price >= @Price";
-                }
+                query += " AND Price <= @Price";
+            }
+            else if (FilterType == "gte")
+            {
+                query += " AND Price >= @Price";
             }
             return query;
         }
+
 
         public async Task<List<CameraResponse>> GetBySQL(int pageNumber, int? categoryID = null, string? name = null, string? brand = null, decimal? minPrice = null, decimal? maxPrice = null, string? FilterType = null)
         {
@@ -69,12 +67,12 @@ namespace CameraAPI.Repositories
                     // câu lệnh trả về gồm danh sách các camera, category name của camera,
                     // và xếp hạng theo số lượng đã được bán
                     string query = $@"WITH AllCameras AS (
-                                        SELECT c.CameraID, c.Name AS CameraName, c.Brand, c.Price, c.Img AS Img, c.Quantity, cat.Name AS CategoryName, c.Description, c.Sold
+                                        SELECT c.CameraID, c.Name AS CameraName, c.Brand, c.Price, c.Img AS Img, c.Quantity, cat.Name AS CategoryName, c.Description, c.Sold, c.CategoryID
                                         FROM dbo.Camera c
                                         INNER JOIN dbo.Category cat ON c.CategoryID = cat.CategoryID
                                         WHERE c.isDelete = 0
                                         UNION ALL
-                                        SELECT c.CameraId, c.Name AS CameraName, c.Brand, c.Price, c.Img AS Img, c.Quantity, cat.Name AS CategoryName, c.Description, c.Sold
+                                        SELECT c.CameraId, c.Name AS CameraName, c.Brand, c.Price, c.Img AS Img, c.Quantity, cat.Name AS CategoryName, c.Description, c.Sold, c.CategoryID
                                         FROM [Warehouse].warehouse.Camera c
                                         INNER JOIN dbo.Category cat ON c.CategoryID = cat.CategoryID
                                         WHERE c.isDelete = 0
