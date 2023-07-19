@@ -30,7 +30,7 @@ namespace CameraAPI.Models
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer("Server=INTERN-TMPHUC1\\SQLEXPRESS;Database=InternShop;uid=minhphuc;password=minhphuc0159@;Trusted_Connection=True;encrypt=false;",
+            optionsBuilder.UseSqlServer("Server=DESKTOP-F3FMDMN\\SQLEXPRESS;Database=InternShop;uid=minhphuc;password=minhphuc0159@;Trusted_Connection=True;encrypt=false;",
                 sqlServerOptions => sqlServerOptions.EnableRetryOnFailure());
         }
 

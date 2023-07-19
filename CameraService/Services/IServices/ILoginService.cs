@@ -1,4 +1,5 @@
 ﻿using CameraAPI.AppModel;
+using CameraCore.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,6 @@ namespace CameraService.Services.IServices
 {
     public interface ILoginService
     {
-        string Login(string username, string password);
+        string Login(UserLogin userObj);
     }
 }
