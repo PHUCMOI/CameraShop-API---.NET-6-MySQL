@@ -1,5 +1,6 @@
 ﻿using CameraAPI.AppModel;
 using CameraCore.IRepository;
+using CameraCore.Models;
 using CameraService.Services.IServices;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
@@ -22,13 +23,13 @@ namespace CameraService.Services
             _distributedCache = distributedCache;
         }
 
-        public string Login(string username, string password)
+        public string Login(UserLogin userObj)
         {
             try
             {
-                if (username != null)
+                if (userObj.Username != null)
                 {
-                    var resultLoginCheck = _loginRepository.CheckLogin(username, password);
+                    var resultLoginCheck = _loginRepository.CheckLogin(userObj.Username, userObj.Password);
                     if (resultLoginCheck == null)
                     {
                         throw new Exception();
@@ -60,7 +61,7 @@ namespace CameraService.Services
 
                         // Lưu trữ token trong phiên (session)
                         //HttpContext.Session.SetString("Token", _userData.AccessToken);
-                        string cacheKey = username;
+                        /*string cacheKey = username;
                         byte[] tokenBytes = Encoding.UTF8.GetBytes(AccessToken);
 
                         var cacheOptions = new DistributedCacheEntryOptions
@@ -68,7 +69,7 @@ namespace CameraService.Services
                             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
                         };
 
-                        _distributedCache.SetString(cacheKey, AccessToken, cacheOptions);
+                        _distributedCache.SetString(cacheKey, AccessToken, cacheOptions);*/
 
                         return AccessToken;
                     }

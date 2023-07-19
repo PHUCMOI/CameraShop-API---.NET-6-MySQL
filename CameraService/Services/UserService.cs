@@ -22,7 +22,7 @@ namespace CameraService.Services
             _autoMapperService = autoMapperService;
             _unitOfWork = unitOfWork;
         }
-        public async Task<bool> Create(UserRequest userRequest, string userID)
+        public async Task<bool> Create(UserRequest userRequest)
         {
             if (userRequest != null)
             {
@@ -30,13 +30,15 @@ namespace CameraService.Services
                 {
                     Username = userRequest.Username,
                     Password = userRequest.Password,
-                    Role = userRequest.Role,
+                    Role = "Customer",
                     Email = userRequest.Email,
                     PhoneNumber = userRequest.PhoneNumber,
-                    Status = userRequest.Status,
-                    UpdatedBy = Convert.ToInt16(userID),
+                    Status = "Active",
+                    //UpdatedBy = Convert.ToInt16(userID),
+                    UpdatedBy = 1,
                     UpdatedDate = DateTime.Now,
-                    CreatedBy = Convert.ToInt16(userID),
+                    CreatedBy = 1,
+                    //CreatedBy = Convert.ToInt16(userID),
                     CreatedDate = DateTime.Now,
                     IsDelete = false
                 };
@@ -47,8 +49,6 @@ namespace CameraService.Services
                 var result = _unitOfWork.Save();
 
                 if (result > 0)
-                    return true;
-                else
                     return true;
             }
             return false;
@@ -94,11 +94,11 @@ namespace CameraService.Services
                 if (user != null)
                 {
                     userDetail.Username = user.Username;
-                    userDetail.Role = user.Role;
+                    //userDetail.Role = user.Role;
                     userDetail.Password = user.Password;
                     userDetail.Email = user.Email;
                     userDetail.PhoneNumber = user.PhoneNumber;
-                    userDetail.Status = user.Status;
+                    //userDetail.Status = user.Status;
                     userDetail.IsDelete = false;
                     userDetail.UpdatedDate = DateTime.Now;
                     userDetail.CreatedDate = userDetail.CreatedDate;

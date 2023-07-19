@@ -1,4 +1,6 @@
 ﻿using CameraAPI.AppModel;
+using CameraAPI.Models;
+using CameraCore.Models;
 using CameraService.Services.IServices;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,11 +18,11 @@ namespace CameraAPI.Controllers
 
         [HttpPost]
         [Route("login")]
-        public Task<IActionResult> PostLoginDetails(string username, string password)
+        public Task<IActionResult> PostLoginDetails([FromBody] UserLogin userObj)
         {
             try
             {
-                string accessToken = _loginService.Login(username, password);
+                string accessToken = _loginService.Login(userObj);
 
                 return Task.FromResult<IActionResult>(accessToken == null ? NotFound() : Ok(accessToken));
             }

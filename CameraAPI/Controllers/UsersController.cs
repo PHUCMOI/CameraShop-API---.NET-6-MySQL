@@ -11,7 +11,7 @@ using System.Security.Claims;
 namespace CameraAPI.Controllers
 {
     [Route("api/user")]
-    [ApiController, Authorize]
+    [ApiController]
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -76,21 +76,17 @@ namespace CameraAPI.Controllers
 
         // POST: api/Users
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<UserRequest>> PostUser(UserRequest user)
+        [HttpPost("register")]
+        public async Task<IActionResult> PostUser([FromBody] UserRequest user)
         {
-            var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
-            var nameIdentifierValue = userIdentity.Claims.ToList();
-            if (nameIdentifierValue[4].Value == "admin")
+            /*var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
+            var nameIdentifierValue = userIdentity.Claims.ToList();*/
+            var result = await _userService.Create(user);
+            if (result)
             {
-                var result = await _userService.Create(user, nameIdentifierValue[3].Value);
-                if (result)
-                {
-                    return Ok(result);
-                }
-                return BadRequest("failed");
+                return Ok(result);
             }
-            return BadRequest("user can not use this endpoint");
+            return BadRequest("failed");
         }
 
         // DELETE: api/Users/5
