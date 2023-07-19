@@ -11,7 +11,7 @@ namespace CameraService.Services.IServices
     {
         Task<IEnumerable<UserResponse>> GetAllUser();
         Task<UserResponse> GetIdAsync(int userId);
-        Task<bool> Create(UserRequest user);
+        Task<string> Create(UserRequest user);
         Task<bool> Update(UserRequest user, string userID, int id);
         Task<bool> DeleteAsync(int userId);
     }
