@@ -7,6 +7,7 @@
  - Using LINQ, SQL, and Stored Procedures to retrieve data with support from Dapper, and AutoMapper.
  - Entity Framework uses Database First.
  - Third-party use for payment online is PayPal.
+ - Unitest uses xUnit.
 
 # Design Pattern 
- - Repository Pattern with Dependency Injection
+ - Repository Pattern with Dependency Injection.
