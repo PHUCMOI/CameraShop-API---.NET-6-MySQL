@@ -87,6 +87,7 @@ namespace CameraAPI.Controllers
             var pass = CheckPasswordStrength(user.Password);
             if (!string.IsNullOrEmpty(pass))
                 return BadRequest(new { Message = pass });
+
             var result = await _userService.Create(user);
             if (result == "Success")
                 return Ok(result);

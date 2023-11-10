@@ -18,17 +18,21 @@ namespace CameraAPI.Controllers
 
         [HttpPost]
         [Route("login")]
-        public Task<IActionResult> PostLoginDetails([FromBody] UserLogin userObj)
+        public async Task<IActionResult> PostLoginDetails([FromBody] UserLogin userObj)
         {
             try
             {
                 string accessToken = _loginService.Login(userObj);
 
-                return Task.FromResult<IActionResult>(accessToken == null ? NotFound() : Ok(accessToken));
+                return Ok(new TokenApiDTO()
+                {
+                    AccessToken = accessToken,
+                    RefreshToken = ""
+                });                
             }
             catch (Exception ex)
             {
-                return Task.FromResult<IActionResult>(BadRequest(ex.Message));
+                return BadRequest(ex.Message);
             }
         }
     }

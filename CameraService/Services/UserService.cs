@@ -35,7 +35,7 @@ namespace CameraService.Services
                 if (await CheckEmailExist(userRequest.Email))
                     return "Email is exist!";
 
-                var pass = CheckPasswordStrength(userRequest.Password);
+                
                 userRequest.Password = PasswordHasher.HashPassword(userRequest.Password);
 
                 var user = new User()
@@ -139,16 +139,6 @@ namespace CameraService.Services
             return _context.Users.AnyAsync(x => x.Email == email);
         }
 
-        private string CheckPasswordStrength(string password)
-        {
-            StringBuilder sb = new StringBuilder();
-            if(password.Length < 8) 
-                sb.Append("Minium password length should be 8" + Environment.NewLine);
-            if (Regex.IsMatch(password, "[a-z]") && Regex.IsMatch(password, "[A-Z]") && Regex.IsMatch(password, "['0-9']"))
-                sb.Append("Password should be Alphanumberic" + Environment.NewLine);
-            if (!Regex.IsMatch(pass, "[<,>,@,!,#,$,%,^,&,*,(,),_,+,\\[,\\],{,},?,:,;,|,',\\,.,/,~,`,-,=]"))
-                sb.Append("Password should contain special charcter" + Environment.NewLine);
-            return sb.ToString();
-        }
+        
     }
 }

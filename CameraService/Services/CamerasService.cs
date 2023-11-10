@@ -157,7 +157,7 @@ namespace CameraAPI.Services
 
                 var result = rankedShopQuery.AsQueryable();
 
-                var warehouseCamera = await _warehouseCameraService.GetAllCamera();
+                /*var warehouseCamera = await _warehouseCameraService.GetAllCamera();
                 var warehouseCategory = await _warehouseCategoryService.GetAllCategory();
                 var warehouseQuery = from camera in warehouseCamera
                                      join category in warehouseCategory
@@ -179,11 +179,10 @@ namespace CameraAPI.Services
                                          Description = camera.Description,
                                      };
 
-                var rankedWarehouseQuery = warehouseQuery.ToList();
+                var rankedWarehouseQuery = warehouseQuery.ToList();*/
 
                 // Gán rank cho các mục có số lượng bán hàng bằng nhau
-                var groupedResult = result
-                    .Concat(rankedWarehouseQuery)                    
+                var groupedResult = result              
                     .ToList();
 
                 int rank = 1;

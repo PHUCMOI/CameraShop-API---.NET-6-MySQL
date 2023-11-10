@@ -5,8 +5,10 @@ using CameraService.Services.IServices;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using System.Collections.Immutable;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace CameraService.Services
@@ -30,6 +32,12 @@ namespace CameraService.Services
                 if (userObj.Username != null)
                 {
                     var resultLoginCheck = _loginRepository.CheckLogin(userObj.Username, userObj.Password);
+
+
+                    /*if (!PasswordHasher.VerifyPassword(userObj.Password, resultLoginCheck.Password))
+                    {
+                        throw new Exception("Password is not correct!");
+                    }*/
                     if (resultLoginCheck == null)
                     {
                         throw new Exception();
@@ -81,8 +89,47 @@ namespace CameraService.Services
             }
             catch (Exception ex) 
             {
-                return ex.Message;
+                throw new Exception(ex.Message);
             }
+        }
+
+        public string CreateRefreshToken()
+        {
+            var tokenBytes = RandomNumberGenerator.GetBytes(64);
+            var refreshToken = Convert.ToBase64String(tokenBytes);
+
+            var tokenInUser = _loginRepository.checkRefreshToken(refreshToken);
+
+            if (tokenInUser)
+            {
+                return CreateRefreshToken();
+            }
+            return refreshToken;
+        }
+
+        public ClaimsPrincipal GetClaimsPrincipalFromExpiredToken(string token)
+        {
+            var key = Encoding.ASCII.GetBytes("veryverysceret.....");
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateAudience = false,
+                ValidateIssuer = false,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateLifetime = true
+            };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            SecurityToken securityToken;
+            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out securityToken);
+            var jwtSecurityToken = securityToken as JwtSecurityToken;
+
+            if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+            {
+                throw new SecurityTokenException("This is Invalid Token");
+            }
+
+            return principal;
         }
     }
 }
