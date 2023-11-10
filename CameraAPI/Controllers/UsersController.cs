@@ -7,6 +7,9 @@ using CameraService.Services.IServices;
 using CameraCore.Models;
 using System.Net.WebSockets;
 using System.Security.Claims;
+using Microsoft.DotNet.Scaffolding.Shared.Messaging;
+using System.Text.RegularExpressions;
+using System.Text;
 
 namespace CameraAPI.Controllers
 {
@@ -81,11 +84,17 @@ namespace CameraAPI.Controllers
         {
             /*var userIdentity = HttpContext.User.Identity as ClaimsIdentity;
             var nameIdentifierValue = userIdentity.Claims.ToList();*/
+            var pass = CheckPasswordStrength(user.Password);
+            if (!string.IsNullOrEmpty(pass))
+                return BadRequest(new { Message = pass });
+
             var result = await _userService.Create(user);
-            if (result)
-            {
+            if (result == "Success")
                 return Ok(result);
-            }
+            if (result == "UserName is exist!")
+                return BadRequest(new { Message = "UserName is exist!" });
+            if (result == "Email is exist!")
+                return BadRequest(new { Message = "Email is exist!" });
             return BadRequest("failed");
         }
 
@@ -105,6 +114,18 @@ namespace CameraAPI.Controllers
                 return BadRequest("failed");
             }
             return BadRequest("user can not use this endpoint");
+        }
+
+        private string CheckPasswordStrength(string password)
+        {
+            StringBuilder sb = new StringBuilder();
+            if (password.Length < 8)
+                sb.Append("Minium password length should be 8" + Environment.NewLine);
+            if (Regex.IsMatch(password, "[a-z]") && Regex.IsMatch(password, "[A-Z]") && Regex.IsMatch(password, "['0-9']"))
+                sb.Append("Password should be Alphanumberic" + Environment.NewLine);
+            if (!Regex.IsMatch(password, "[<,>,@,!,#,$,%,^,&,*,(,),_,+,\\[,\\],{,},?,:,;,|,',\\,.,/,~,`,-,=]"))
+                sb.Append("Password should contain special charcter" + Environment.NewLine);
+            return sb.ToString();
         }
     }
 }

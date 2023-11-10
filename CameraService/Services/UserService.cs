@@ -2,10 +2,12 @@
 using CameraAPI.Repositories;
 using CameraCore.Models;
 using CameraService.Services.IServices;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace CameraService.Services
@@ -15,17 +17,27 @@ namespace CameraService.Services
         private readonly IUserRepository _userRepository;
         private readonly IAutoMapperService _autoMapperService;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly CameraAPIdbContext _context;
 
-        public UserService(IUserRepository userRepository, IAutoMapperService autoMapperService, IUnitOfWork unitOfWork)
+        public UserService(IUserRepository userRepository, IAutoMapperService autoMapperService, IUnitOfWork unitOfWork, CameraAPIdbContext context)
         {
             _userRepository = userRepository;
             _autoMapperService = autoMapperService;
             _unitOfWork = unitOfWork;
+            _context = context;
         }
-        public async Task<bool> Create(UserRequest userRequest)
+        public async Task<string> Create(UserRequest userRequest)
         {
             if (userRequest != null)
             {
+                if (await CheckUserNameExist(userRequest.Username))
+                    return "UserName is exist!";
+                if (await CheckEmailExist(userRequest.Email))
+                    return "Email is exist!";
+
+                
+                userRequest.Password = PasswordHasher.HashPassword(userRequest.Password);
+
                 var user = new User()
                 {
                     Username = userRequest.Username,
@@ -49,10 +61,11 @@ namespace CameraService.Services
                 var result = _unitOfWork.Save();
 
                 if (result > 0)
-                    return true;
+                    return "Success";
             }
-            return false;
+            return "Failed";
         }
+
 
         public Task<bool> DeleteAsync(int userId)
         {
@@ -115,5 +128,17 @@ namespace CameraService.Services
             }
             return false;
         }
+
+        private Task<bool> CheckUserNameExist(string username)
+        {
+            return _context.Users.AnyAsync(x => x.Username == username);
+        }
+
+        private Task<bool> CheckEmailExist(string email)
+        {
+            return _context.Users.AnyAsync(x => x.Email == email);
+        }
+
+        
     }
 }

@@ -12,7 +12,7 @@ namespace CameraAPI.Controllers
 {
     [Route("api/cameras")]
     [ApiController]
-    [Authorize]
+    //[Authorize]
     public class CamerasController : ControllerBase
     {
         public readonly ICameraService _camService;

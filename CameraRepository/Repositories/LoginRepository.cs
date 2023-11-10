@@ -1,8 +1,12 @@
 ﻿using CameraAPI.AppModel;
 using CameraAPI.Models;
 using CameraCore.IRepository;
+using CameraCore.Models;
+using Dapper;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,36 +16,65 @@ namespace CameraRepository.Repositories
     public class LoginRepository : ILoginRepository
     {
         private readonly CameraAPIdbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public LoginRepository(CameraAPIdbContext context)
+        public LoginRepository(CameraAPIdbContext context, IConfiguration configuration)
         { 
             _context = context;
+            _configuration = configuration;
         }
 
         public UserModel CheckLogin(string name, string password)
         {
-            var resultLoginCheck = _context.Users
-                    .Where(e => e.Username == name && e.Password == password)
-                    .FirstOrDefault();
-
-            if(resultLoginCheck != null)
+            try
             {
-                var resultUser = new UserModel()
+                using (SqlConnection connection = new SqlConnection(_configuration.GetConnectionString("InternShop")))
                 {
-                    Username = resultLoginCheck.Username,
-                    UserId = resultLoginCheck.UserId,
-                    Role = resultLoginCheck.Role,
-                    Email = resultLoginCheck.Email,
-                    PhoneNumber = resultLoginCheck.PhoneNumber,
-                    AccessToken = ""
-                };
+                    var query = @"SELECT Username, Password, UserId, Role, Email, PhoneNumber 
+                                    FROM [dbo].[User]
+                                    WHERE Username = @name AND Password = @password"
+                    ;
 
-                return resultUser;
+                    var parameters = new { name = name, password = password };
+
+                    var user = connection.QueryFirstOrDefault<User>(query, parameters);
+
+                    if (user != null)
+                    {
+                        var resultUser = new UserModel()
+                        {
+                            Password = user.Password,
+                            Username = user.Username,
+                            UserId = user.UserId,
+                            Role = user.Role,
+                            Email = user.Email,
+                            PhoneNumber = user.PhoneNumber,
+                            AccessToken = ""
+                        };
+
+                        return resultUser;
+                    }
+                    else
+                    {
+                        throw new Exception("username or password is not correct");
+                    }
+                }                
             }
-            else
+            catch (Exception ex)
             {
-                throw new Exception("username or password is not correct");
-            }    
+                throw new Exception(ex.Message);
+            }                
+        }
+
+        public Boolean checkRefreshToken(string refreshtoken)
+        {
+            var tokenInUser = _context.Users.Any(a => a.Username == refreshtoken);
+
+            if(tokenInUser)
+            {
+                return true;
+            }
+            return false;
         }
     }
 }

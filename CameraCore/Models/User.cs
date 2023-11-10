@@ -14,6 +14,8 @@ namespace CameraAPI.Models
         public string Email { get; set; }
         public string PhoneNumber { get; set; }
         public string Status { get; set; }
+        public string RefreshToken { get; set; }
+        public DateTime RefreshTokenExpiryTime { get; set; }
         public int? CreatedBy { get; set; }
         public DateTime? CreatedDate { get; set; }
         public int? UpdatedBy { get; set; }

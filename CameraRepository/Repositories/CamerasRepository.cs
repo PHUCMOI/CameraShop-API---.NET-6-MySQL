@@ -71,11 +71,6 @@ namespace CameraAPI.Repositories
                                         FROM dbo.Camera c
                                         INNER JOIN dbo.Category cat ON c.CategoryID = cat.CategoryID
                                         WHERE c.isDelete = 0
-                                        UNION ALL
-                                        SELECT c.CameraId, c.Name AS CameraName, c.Brand, c.Price, c.Img AS Img, c.Quantity, cat.Name AS CategoryName, c.Description, c.Sold, c.CategoryID
-                                        FROM [Warehouse].warehouse.Camera c
-                                        INNER JOIN dbo.Category cat ON c.CategoryID = cat.CategoryID
-                                        WHERE c.isDelete = 0
                                     ),
                                     RankedCameras AS (
                                         SELECT *,
